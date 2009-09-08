@@ -1,0 +1,24 @@
+Feature selection for maximum entropy modeling
+==============================================
+Daniël de Kok <me@danieldk.eu>
+
+Compilation
+-----------
+
+Requirements:
+
+- C++ standard library with TR1 extensions.
+- C++ compiler with support for C++0x (for type inference).
+
+g++ 4.4.x satisfies these requirements.
+
+References
+----------
+
+1. A maximum entropy approach to natural language processing, Adam L. Berger,
+   Vincent J. Della Pietra, Stephen A. Della Pietra, Computational Linguistics,
+   Volume 22, Issue 1, March 1996
+2. A fast algorithm for feature selection in conditional maximum entropy modeling,
+   Yaqian Zhou, Fuliang Weng, Lide Wu, Hauke Schmidt, Theoretical Issues In Natural
+   Language Processing, Proceedings of the 2003 conference on Empirical methods in
+   natural language processing, Volume 10
