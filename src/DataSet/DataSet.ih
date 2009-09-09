@@ -1,0 +1,17 @@
+#include <algorithm>
+#include <istream>
+#include <iterator>
+#include <string>
+
+#include <tr1/unordered_map>
+#include <tr1/unordered_set>
+
+#include <FeatureSqueeze/stringutil.hh>
+#include <FeatureSqueeze/Context.hh>
+#include <FeatureSqueeze/DataSet.hh>
+#include <FeatureSqueeze/Event.hh>
+#include <FeatureSqueeze/Feature.hh>
+
+using namespace std;
+using namespace std::tr1;
+using namespace fsqueeze;
