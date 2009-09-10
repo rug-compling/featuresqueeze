@@ -41,7 +41,7 @@ T parseString(std::string const &str)
 	iss >> val;
 
 	if (!iss)
-		throw std::invalid_argument("Error parsing option argument: " + 
+		throw std::invalid_argument("Error parsing: " + 
 str);
 
 	return val;
