@@ -6,7 +6,9 @@ LIBFSQUEEZE_SOURCES=\
 	libfsqueeze/src/FeatureSelection/FeatureSelection.cpp
 LIBFSQUEEZE_OBJECTS=$(LIBFSQUEEZE_SOURCES:.cpp=.o)
 
-FSQUEEZE_SOURCES=util/fsqueeze/fsqueeze.cpp
+FSQUEEZE_SOURCES=\
+	util/fsqueeze/fsqueeze.cpp \
+	util/fsqueeze/ProgramOptions.cpp
 FSQUEEZE_OBJECTS=$(FSQUEEZE_SOURCES:.cpp=.o)
 
 all: fsqueeze
