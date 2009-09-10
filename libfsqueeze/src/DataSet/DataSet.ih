@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <istream>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 
 #include <tr1/unordered_map>

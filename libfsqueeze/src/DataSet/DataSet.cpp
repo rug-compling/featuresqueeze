@@ -19,6 +19,14 @@
 
 #include "DataSet.ih"
 
+// Error messages used in readDataSet exceptions.
+string const ERR_INCORRECT_NEVENTS =
+	string("Could not read the indicated number of events: ");
+string const ERR_INCORRECT_NFEATURES =
+	string("Incorrect number of features in event line: ");
+string const ERR_INCORRECT_EVENT =
+	string("Incorrect event line: ");
+
 DataSet::DataSet(ContextVector const &contexts) : d_contexts(contexts)
 {
 	removeStaticFeatures();
@@ -136,8 +144,15 @@ void DataSet::normalizeEvents(double ctxSum)
 Event DataSet::readEvent(string const &eventLine)
 {
 	auto lineParts = stringSplit(eventLine);
+	
+	if (lineParts.size() < 2)
+		throw runtime_error(ERR_INCORRECT_EVENT + eventLine);
+	
 	auto eventProb = parseString<double>(lineParts[0]);
 	auto nFeatures = parseString<size_t>(lineParts[1]);
+
+	if ((nFeatures * 2) + 2 != lineParts.size())
+		throw runtime_error(ERR_INCORRECT_NFEATURES + eventLine);
 	
 	FeatureMap features;
 
@@ -162,7 +177,9 @@ Context DataSet::readContext(istream &iss)
 	for (size_t i = 0; i < nEvents; ++i)
 	{
 		string line;
-		getline(iss, line);
+		if (!getline(iss, line))
+			throw runtime_error(ERR_INCORRECT_NEVENTS + nEventStr);
+		
 		events.push_back(readEvent(line));
 	}
 	
