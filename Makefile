@@ -1,16 +1,26 @@
 CXX=g++-4.4
-CXXFLAGS=-std=c++0x -O2 -Wall -pedantic -I.
+CXXFLAGS=-std=c++0x -O2 -Wall -pedantic -Ilibfsqueeze
 
-SOURCES=src/DataSet/DataSet.cpp src/FeatureSelection/FeatureSelection.cpp \
-	fsqueeze.cpp
-OBJECTS=$(SOURCES:.cpp=.o)
+LIBFSQUEEZE_SOURCES=\
+	libfsqueeze/src/DataSet/DataSet.cpp \
+	libfsqueeze/src/FeatureSelection/FeatureSelection.cpp
+LIBFSQUEEZE_OBJECTS=$(LIBFSQUEEZE_SOURCES:.cpp=.o)
+
+FSQUEEZE_SOURCES=util/fsqueeze/fsqueeze.cpp
+FSQUEEZE_OBJECTS=$(FSQUEEZE_SOURCES:.cpp=.o)
+
+all: fsqueeze
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-fsqueeze: $(OBJECTS)
-	$(CXX) -o $@ $(OBJECTS)
+libfsqueeze.a: $(LIBFSQUEEZE_OBJECTS)
+	ar cq $@ $(LIBFSQUEEZE_OBJECTS)
+
+fsqueeze: $(FSQUEEZE_OBJECTS) libfsqueeze.a
+	$(CXX) -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
 
 clean:
-	rm -f *.o fsqueeze
-	find src -name '*.o' -exec rm -f {} \;
+	rm -f libfsqueeze.a fsqueeze
+	find libfsqueeze -name '*.o' -exec rm -f {} \;
+	find util -name '*.o' -exec rm -f {} \;
