@@ -31,8 +31,16 @@ typedef std::vector<Triple<size_t, double, double>> SelectedFeatureAlphas;
 typedef std::vector<std::vector<double>> Sums;
 typedef std::vector<double> Zs;
 
-SelectedFeatureAlphas featureSelection(DataSet const &ds, double alphaThreshold,
-	double gainThreshold);
+/**
+ * Select features based on a dataset.
+ *
+ * @ds The dataset to mine for features
+ * @alphaThreshold Threshold to determine convergence of alpha values
+ * @gainThreshold Threshold to determine the stopping point of the feature 
+ *	selection cycle.
+ */
+SelectedFeatureAlphas featureSelection(DataSet const &ds, double alphaThreshold = 1e-10,
+	double gainThreshold = 1e-10);
 
 inline double p_yx(double sum, double z)
 {

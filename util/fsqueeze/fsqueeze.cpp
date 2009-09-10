@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 	}
 
 	auto ds = fsqueeze::DataSet::readTADMDataSet(dataStream);
-	auto features = fsqueeze::featureSelection(ds, 1e-6, 1e-6);
+	auto features = fsqueeze::featureSelection(ds);
 	
 	for (auto fIter = features.begin(); fIter != features.end(); ++fIter)
 		cout << fIter->first << "\t" << fIter->second << "\t" << fIter->third << endl;
