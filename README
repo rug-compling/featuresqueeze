@@ -13,6 +13,16 @@ Requirements:
 g++ 4.4.x satisfies these requirements. With these components in place,
 compile by simply executing 'make' in the top-level directory.
 
+Usage
+-----
+
+Feature selection can be performed using the 'fsqueeze' command:
+
+fsqueeze dataset
+
+Where 'dataset' is a data set in TADM format minus the optional header
+line.
+
 To do
 -----
 
