@@ -15,7 +15,7 @@ all: fsqueeze
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 libfsqueeze.a: $(LIBFSQUEEZE_OBJECTS)
-	ar cq $@ $(LIBFSQUEEZE_OBJECTS)
+	ar cr $@ $(LIBFSQUEEZE_OBJECTS)
 
 fsqueeze: $(FSQUEEZE_OBJECTS) libfsqueeze.a
 	$(CXX) -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
