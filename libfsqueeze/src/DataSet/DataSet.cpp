@@ -156,7 +156,7 @@ Event DataSet::readEvent(string const &eventLine)
 	
 	FeatureMap features;
 
-	for (size_t i = 0; i < nFeatures; i += 2)
+	for (size_t i = 0; i < (2 * nFeatures); i += 2)
 	{
 		auto fId = parseString<size_t>(lineParts[i + 2]);
 		auto fVal = parseString<double>(lineParts[i + 3]);
