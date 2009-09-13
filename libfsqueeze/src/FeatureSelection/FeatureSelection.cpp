@@ -288,7 +288,7 @@ void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
 }
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
-	double alphaThreshold, double gainThreshold)
+	double alphaThreshold, double gainThreshold, size_t nFeatures)
 {
 	unordered_set<size_t> selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -298,7 +298,7 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	
 	auto expVals = expFeatureValues(dataSet);
 
-	while(true)	
+	while(selectedFeatures.size() < nFeatures)	
 	{
 		auto expModelVals = expModelFeatureValues(dataSet, sums, zs);
 

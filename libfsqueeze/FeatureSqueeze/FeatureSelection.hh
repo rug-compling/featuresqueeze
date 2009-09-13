@@ -20,6 +20,7 @@
 #ifndef FEATURE_SELECTION_HH
 #define FEATURE_SELECTION_HH
 
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -40,7 +41,7 @@ typedef std::vector<double> Zs;
  *	selection cycle.
  */
 SelectedFeatureAlphas featureSelection(DataSet const &ds, double alphaThreshold = 1e-10,
-	double gainThreshold = 1e-10);
+	double gainThreshold = 1e-10, size_t nFeatures = std::numeric_limits<size_t>::max());
 
 inline double p_yx(double sum, double z)
 {

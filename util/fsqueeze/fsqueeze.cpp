@@ -19,6 +19,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #include "FeatureSqueeze/stringutil.hh"
 #include "FeatureSqueeze/DataSet.hh"
@@ -32,12 +33,13 @@ void usage(string const &programName)
 {
 	cerr << "Usage: " << programName << " [OPTION] dataset" << endl << endl <<
 		"  -a val\t Alpha convergence threshold" << endl <<
-		"  -g val\t Gain threshold" << endl << endl;	
+		"  -g val\t Gain threshold" << endl <<
+		"  -n val\t Maximum number of features" << endl << endl;
 }
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:g:");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:g:n:");
 	
 	if (programOptions.arguments().size() != 1)
 	{
@@ -52,6 +54,11 @@ int main(int argc, char *argv[])
 	double gradientThreshold = 1e-6;
 	if (programOptions.option('g'))
 		gradientThreshold = fsqueeze::parseString<double>(programOptions.optionValue('g'));
+	
+	
+	auto nFeatures = numeric_limits<size_t>::max();
+	if (programOptions.option('n'))
+		nFeatures = fsqueeze::parseString<size_t>(programOptions.optionValue('n'));
 
 	ifstream dataStream(programOptions.arguments()[0]);
 	if (!dataStream)
@@ -61,7 +68,7 @@ int main(int argc, char *argv[])
 	}
 
 	auto ds = fsqueeze::DataSet::readTADMDataSet(dataStream);
-	auto features = fsqueeze::featureSelection(ds, alphaThreshold, gradientThreshold);
+	auto features = fsqueeze::featureSelection(ds, alphaThreshold, gradientThreshold, nFeatures);
 	
 	for (auto fIter = features.begin(); fIter != features.end(); ++fIter)
 		cout << fIter->first << "\t" << fIter->second << "\t" << fIter->third << endl;
