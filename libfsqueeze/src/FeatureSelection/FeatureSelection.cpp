@@ -239,13 +239,13 @@ unordered_set<size_t> updateAlphas(unordered_set<size_t> const &unconvergedFeatu
 	return newUnconvergedFs;
 }
 
-unordered_map<size_t, double> a_f(DataSet const &dataSet)
+unordered_map<size_t, double> a_f(unordered_set<size_t> &features)
 {
 	unordered_map<size_t, double> a;
 	
-	for (auto iter = dataSet.features().begin(); iter != dataSet.features().end();
+	for (auto iter = features.begin(); iter != features.end();
 			++iter)
-		a[iter->first] = 0.0;
+		a[*iter] = 0.0;
 		
 	return a;
 }
@@ -321,12 +321,12 @@ void fullSelectionStage(DataSet const &dataSet,
 
 	auto r = r_f(expVals, expModelVals);
 	
-	auto a = a_f(dataSet);
+	auto a = a_f(unconvergedFs);
 
 	while (unconvergedFs.size() != 0)
 	{
 		auto gp = expVals;
-		auto gpp = a_f(dataSet);
+		auto gpp = a_f(unconvergedFs);
 	
 		updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
