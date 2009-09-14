@@ -77,7 +77,8 @@ unordered_map<size_t, double> expModelFeatureValues(DataSet const &dataSet,
 }
 
 vector<unordered_set<size_t>> contextActiveFeatures(DataSet const &dataSet,
-	unordered_set<size_t> const &selectedFeatures, Sums const &sums, Zs const &zs)
+	unordered_set<size_t> const &selectedFeatures, bool includeSelected,
+	Sums const &sums, Zs const &zs)
 {
 	vector<unordered_set<size_t>> ctxActive;
 	
@@ -94,10 +95,18 @@ vector<unordered_set<size_t>> contextActiveFeatures(DataSet const &dataSet,
 			for (auto fIter = evtIter->features().begin();
 					fIter != evtIter->features().end();
 					++fIter)
-				if (selectedFeatures.find(fIter->first) == selectedFeatures.end() &&
-						active.find(fIter->first) == active.end() &&
-						fIter->second.value() * pyx * ctxIter->prob() != 0.0)
-					active.insert(fIter->first);
+				if (includeSelected)
+				{
+					if (selectedFeatures.find(fIter->first) != selectedFeatures.end() &&
+							active.find(fIter->first) == active.end() &&
+							fIter->second.value() * pyx * ctxIter->prob() != 0.0)
+						active.insert(fIter->first);
+				}	
+				else
+					if (selectedFeatures.find(fIter->first) == selectedFeatures.end() &&
+							active.find(fIter->first) == active.end() &&
+							fIter->second.value() * pyx * ctxIter->prob() != 0.0)
+						active.insert(fIter->first);
 		}
 		
 		ctxActive.push_back(active);
@@ -316,7 +325,7 @@ void fullSelectionStage(DataSet const &dataSet,
 {
 	auto expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
 
-	auto ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, *sums, *zs);
+	auto ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, false, *sums, *zs);
 	auto unconvergedFs = activeFeatures(ctxActiveFs);
 
 	auto r = r_f(expVals, expModelVals);
