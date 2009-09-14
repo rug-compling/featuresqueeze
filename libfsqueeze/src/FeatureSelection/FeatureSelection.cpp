@@ -287,6 +287,50 @@ void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
 	}
 }
 
+void fullSelectionStage(DataSet const &dataSet,
+	double alphaThreshold,
+	unordered_map<size_t, double> const &expVals,
+	vector<double> *zs,
+	vector<vector<double>> *sums,
+	unordered_set<size_t> *selectedFeatures,
+	SelectedFeatureAlphas *selectedFeatureAlphas)
+{
+	auto expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
+
+	auto ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, *sums, *zs);
+	auto unconvergedFs = activeFeatures(ctxActiveFs);
+
+	auto r = r_f(expVals, expModelVals);
+	
+	auto a = a_f(dataSet);
+
+	while (unconvergedFs.size() != 0)
+	{
+		auto gp = expVals;
+		auto gpp = a_f(dataSet);
+	
+		updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
+		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
+	}
+
+	auto gains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);	
+
+	auto maxGain = 0.0;
+	size_t maxF = 0;
+	for (auto iter = gains.begin(); iter != gains.end(); ++iter)
+		if (iter->second > maxGain)
+		{
+			maxGain = iter->second;
+			maxF = iter->first;
+		}
+
+	auto maxAlpha = a[maxF];
+
+	adjustModel(dataSet, maxF, maxAlpha, sums, zs);
+	selectedFeatures->insert(maxF);
+	selectedFeatureAlphas->push_back(makeTriple(maxF, maxAlpha, maxGain));
+}
+
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	double alphaThreshold, double gainThreshold, size_t nFeatures)
 {
@@ -300,48 +344,18 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 
 	while(selectedFeatures.size() < nFeatures)	
 	{
-		auto expModelVals = expModelFeatureValues(dataSet, sums, zs);
-
-		auto ctxActiveFs = contextActiveFeatures(dataSet, selectedFeatures, sums, zs);
-		auto unconvergedFs = activeFeatures(ctxActiveFs);
-	
-		auto r = r_f(expVals, expModelVals);
+		fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+			&selectedFeatures, &selectedFeatureAlphas);
 		
-		auto a = a_f(dataSet);
-
-		while (unconvergedFs.size() != 0)
+		if (selectedFeatureAlphas.back().third < gainThreshold)
 		{
-			auto gp = expVals;
-			auto gpp = a_f(dataSet);
-		
-			updateGradients(dataSet, unconvergedFs, ctxActiveFs, sums, zs, a, &gp, &gpp);
-			unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
-		}
-	
-		auto gains = calcGains(dataSet, ctxActiveFs, expVals, a, sums, zs);	
-		auto maxGain = 0.0;
-		size_t maxF = 0;
-	
-		for (auto iter = gains.begin(); iter != gains.end(); ++iter)
-			if (iter->second > maxGain)
-			{
-				maxGain = iter->second;
-				maxF = iter->first;
-			}
-	
-		if (maxGain < gainThreshold)
+			selectedFeatureAlphas.pop_back();
 			break;
-
-		auto maxAlpha = a[maxF];
-	
-		adjustModel(dataSet, maxF, maxAlpha, &sums, &zs);
-		selectedFeatures.insert(maxF);
-		selectedFeatureAlphas.push_back(makeTriple(maxF, maxAlpha, maxGain));
+		}
 	}
 	
 	return selectedFeatureAlphas;
 }
-
 
 double zf(vector<Event> const &events, vector<double> const &ctxSums, double z,
 	size_t feature, double alpha)
