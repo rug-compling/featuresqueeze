@@ -315,7 +315,7 @@ void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
 	}
 }
 
-void fullSelectionStage(DataSet const &dataSet,
+set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
 	unordered_map<size_t, double> const &expVals,
 	vector<double> *zs,
@@ -341,7 +341,7 @@ void fullSelectionStage(DataSet const &dataSet,
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
 	}
 
-	auto gains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);	
+	auto gains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);
 
 	size_t maxF = gains.begin()->first;
 	auto maxGain = gains.begin()->second;
@@ -350,6 +350,8 @@ void fullSelectionStage(DataSet const &dataSet,
 	adjustModel(dataSet, maxF, maxAlpha, sums, zs);
 	selectedFeatures->insert(maxF);
 	selectedFeatureAlphas->push_back(makeTriple(maxF, maxAlpha, maxGain));
+	
+	return gains;
 }
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
