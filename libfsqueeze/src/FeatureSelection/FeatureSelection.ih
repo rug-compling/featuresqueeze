@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iterator>
 #include <limits>
+#include <set>
 #include <vector>
 
 #include <tr1/unordered_map>
