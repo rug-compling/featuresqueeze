@@ -23,12 +23,14 @@ struct GainLess
 {
 	bool operator()(pair<size_t, double> const &f1, pair<size_t, double> const &f2)
 	{
-		if (f1.second > f2.second)
-			return true;
-		if (f1.second < f2.second)
-			return false;
-		else
-			return f1.second < f2.second;
+		// Treat NaN as no gain.
+		double g1 = isnan(f1.second) ? 0.0 : f1.second;
+		double g2 = isnan(f2.second) ? 0.0 : f2.second;
+		
+		if (g1 == g2)
+			return f1.first < f2.first;
+		
+		return g1 > g2;
 	}
 };
 
