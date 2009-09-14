@@ -76,16 +76,16 @@ unordered_map<size_t, double> expModelFeatureValues(DataSet const &dataSet,
 	return expVals;
 }
 
-vector<unordered_set<size_t>> contextActiveFeatures(DataSet const &dataSet,
-	unordered_set<size_t> const &selectedFeatures, bool includeSelected,
+vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
+	FeatureSet const &selectedFeatures, bool includeSelected,
 	Sums const &sums, Zs const &zs)
 {
-	vector<unordered_set<size_t>> ctxActive;
+	vector<FeatureSet> ctxActive;
 	
 	for (auto ctxIter = dataSet.contexts().begin(), ctxSumIter = sums.begin(), zIter = zs.begin();
 	ctxIter != dataSet.contexts().end(); ++ctxIter, ++ctxSumIter, ++zIter)
 	{
-		unordered_set<size_t> active;
+		FeatureSet active;
 
 		for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin();
 			evtIter != ctxIter->events().end(); ++evtIter, ++sumIter)
@@ -115,9 +115,9 @@ vector<unordered_set<size_t>> contextActiveFeatures(DataSet const &dataSet,
 	return ctxActive;
 }
 
-unordered_set<size_t> activeFeatures(vector<unordered_set<size_t>> const &contextActiveFeatures)
+FeatureSet activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 {
-	unordered_set<size_t> active;
+	FeatureSet active;
 	
 	for (auto ctxIter = contextActiveFeatures.begin(); ctxIter != contextActiveFeatures.end();
 			++ctxIter)
@@ -170,8 +170,8 @@ unordered_map<size_t, double> r_f(unordered_map<size_t, double> const &expFeatur
 }
 
 void updateGradients(DataSet const &dataSet,
-	unordered_set<size_t> const &unconvergedFeatures,
-	vector<unordered_set<size_t>> const &activeFeatures,
+	FeatureSet const &unconvergedFeatures,
+	vector<FeatureSet> const &activeFeatures,
 	Sums const &sums,
 	Zs const &zs,
 	unordered_map<size_t, double> const &alphas,
@@ -225,14 +225,14 @@ void updateGradients(DataSet const &dataSet,
 	}
 }
 
-unordered_set<size_t> updateAlphas(unordered_set<size_t> const &unconvergedFeatures,
+FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 	unordered_map<size_t, double> const &r,
 	unordered_map<size_t, double> const &gp,
 	unordered_map<size_t, double> const &gpp,
 	unordered_map<size_t, double> *alphas,
 	double alphaThreshold)
 {
-	unordered_set<size_t> newUnconvergedFs = unconvergedFeatures;
+	FeatureSet newUnconvergedFs = unconvergedFeatures;
 	for (auto fIter = unconvergedFeatures.begin(); fIter != unconvergedFeatures.end();
 		++fIter)
 	{
@@ -248,7 +248,7 @@ unordered_set<size_t> updateAlphas(unordered_set<size_t> const &unconvergedFeatu
 	return newUnconvergedFs;
 }
 
-unordered_map<size_t, double> a_f(unordered_set<size_t> &features)
+unordered_map<size_t, double> a_f(FeatureSet const &features)
 {
 	unordered_map<size_t, double> a;
 	
@@ -260,7 +260,7 @@ unordered_map<size_t, double> a_f(unordered_set<size_t> &features)
 }
 
 set<pair<size_t, double>, GainLess> calcGains(DataSet const &dataSet,
-	vector<unordered_set<size_t>> const &contextActiveFeatures,
+	vector<FeatureSet> const &contextActiveFeatures,
 	unordered_map<size_t, double> const &expFeatureValues,
 	unordered_map<size_t, double> const &alphas,
 	vector<vector<double>> const &sums,
@@ -320,7 +320,7 @@ set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
 	unordered_map<size_t, double> const &expVals,
 	vector<double> *zs,
 	vector<vector<double>> *sums,
-	unordered_set<size_t> *selectedFeatures,
+	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas)
 {
 	auto expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
@@ -357,7 +357,7 @@ set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	double alphaThreshold, double gainThreshold, size_t nFeatures)
 {
-	unordered_set<size_t> selectedFeatures;
+	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
 	
 	auto zs = initialZs(dataSet);
