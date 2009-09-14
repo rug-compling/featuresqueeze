@@ -19,6 +19,19 @@
 
 #include "FeatureSelection.ih"
 
+struct GainLess
+{
+	bool operator()(pair<size_t, double> const &f1, pair<size_t, double> const &f2)
+	{
+		if (f1.second > f2.second)
+			return true;
+		if (f1.second < f2.second)
+			return false;
+		else
+			return f1.second < f2.second;
+	}
+};
+
 double zf(vector<Event> const &events, vector<double> const &ctxSums, double z,
 	size_t feature, double alpha);
 
@@ -235,14 +248,14 @@ unordered_map<size_t, double> a_f(DataSet const &dataSet)
 	return a;
 }
 
-unordered_map<size_t, double> calcGains(DataSet const &dataSet,
+set<pair<size_t, double>, GainLess> calcGains(DataSet const &dataSet,
 	vector<unordered_set<size_t>> const &contextActiveFeatures,
 	unordered_map<size_t, double> const &expFeatureValues,
 	unordered_map<size_t, double> const &alphas,
 	vector<vector<double>> const &sums,
 	vector<double> const &zs)
 {
-	unordered_map<size_t, double> gains;
+	unordered_map<size_t, double> gainSum;
 	
 	for (auto ctxIter = dataSet.contexts().begin(), fsIter = contextActiveFeatures.begin(),
 		ctxSumIter = sums.begin(), zIter = zs.begin(); ctxIter != dataSet.contexts().end();
@@ -256,13 +269,17 @@ unordered_map<size_t, double> calcGains(DataSet const &dataSet,
 			
 			auto lg = ctxIter->prob() * log(newZ / *zIter);
 			
-			gains[alphaIter->first] -= lg;
+			gainSum[alphaIter->first] -= lg;
 		}
 	}
 	
+	set<pair<size_t, double>, GainLess> gains;
 	for (auto alphaIter = alphas.begin(); alphaIter != alphas.end();
 			++alphaIter)
-		gains[alphaIter->first] += alphaIter->second * expFeatureValues.find(alphaIter->first)->second;
+		gains.insert(make_pair(alphaIter->first,
+			gainSum[alphaIter->first] + alphaIter->second *
+			expFeatureValues.find(alphaIter->first)->second
+		));
 	
 	return gains;
 }
@@ -315,15 +332,8 @@ void fullSelectionStage(DataSet const &dataSet,
 
 	auto gains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);	
 
-	auto maxGain = 0.0;
-	size_t maxF = 0;
-	for (auto iter = gains.begin(); iter != gains.end(); ++iter)
-		if (iter->second > maxGain)
-		{
-			maxGain = iter->second;
-			maxF = iter->first;
-		}
-
+	size_t maxF = gains.begin()->first;
+	auto maxGain = gains.begin()->second;
 	auto maxAlpha = a[maxF];
 
 	adjustModel(dataSet, maxF, maxAlpha, sums, zs);
