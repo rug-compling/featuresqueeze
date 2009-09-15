@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 	if (programOptions.option('n'))
 		nFeatures = fsqueeze::parseString<size_t>(programOptions.optionValue('n'));
 
-	ifstream dataStream(programOptions.arguments()[0]);
+	ifstream dataStream(programOptions.arguments()[0].c_str());
 	if (!dataStream)
 	{
 		cerr << "Error opening input file!" << endl;
