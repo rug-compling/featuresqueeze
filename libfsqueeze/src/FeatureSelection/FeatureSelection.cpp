@@ -98,13 +98,11 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 				if (includeSelected)
 				{
 					if (selectedFeatures.find(fIter->first) != selectedFeatures.end() &&
-							active.find(fIter->first) == active.end() &&
 							fIter->second.value() * pyx * ctxIter->prob() != 0.0)
 						active.insert(fIter->first);
 				}	
 				else
 					if (selectedFeatures.find(fIter->first) == selectedFeatures.end() &&
-							active.find(fIter->first) == active.end() &&
 							fIter->second.value() * pyx * ctxIter->prob() != 0.0)
 						active.insert(fIter->first);
 		}
@@ -379,6 +377,104 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	
 	return selectedFeatureAlphas;
 }
+
+void fastSelectionStage(DataSet const &dataSet,
+	double alphaThreshold,
+	unordered_map<size_t, double> const &expVals,
+	vector<double> *zs,
+	vector<vector<double>> *sums,
+	FeatureSet *selectedFeatures,
+	SelectedFeatureAlphas *selectedFeatureAlphas,
+	set<pair<size_t, double>, GainLess> *gains)
+{
+	auto expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
+
+	while (true)
+	{
+		FeatureSet recalcFeatures;
+		recalcFeatures.insert(gains->begin()->first);
+		auto ctxActiveFs = contextActiveFeatures(dataSet, recalcFeatures, true, *sums, *zs);
+		auto unconvergedFs = activeFeatures(ctxActiveFs);
+
+		auto r = r_f(expVals, expModelVals);
+	
+		auto a = a_f(unconvergedFs);
+
+		while (unconvergedFs.size() != 0)
+		{
+			auto gp = expVals;
+			auto gpp = a_f(unconvergedFs);
+	
+			updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
+			unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
+		}
+
+		auto newGains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);	
+		
+		size_t f = newGains.begin()->first;
+		auto gain = newGains.begin()->second;
+		auto alpha = a[f];
+
+		auto gainIter = gains->begin();
+		
+		++gainIter;
+		
+		if (isnan(gain))
+			throw runtime_error("Refusing to select NaNs");
+
+		if (gainIter->second <= gain)
+		{
+			// The current feature has a higher recalculated gain than the
+			// second-highest feature. Select the current feature, and remove
+			// it for further analyses.
+			adjustModel(dataSet, f, alpha, sums, zs);
+			selectedFeatures->insert(f);
+			selectedFeatureAlphas->push_back(makeTriple(f, alpha, gain));
+			gains->erase(gains->begin(), gainIter);
+			
+			break; // Done for this stage.
+		}
+		else
+		{
+			gains->erase(gains->begin(), gainIter);
+			gains->insert(make_pair(f, gain));
+		}
+ 	}
+}
+
+SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
+	double alphaThreshold, double gainThreshold, size_t nFeatures)
+{
+	FeatureSet selectedFeatures;
+	SelectedFeatureAlphas selectedFeatureAlphas;
+	
+	auto zs = initialZs(dataSet);
+	auto sums = initialSums(dataSet);
+	
+	auto expVals = expFeatureValues(dataSet);
+
+	// Start with a full selection stage to calculate the stage 2 model and gains.
+	auto gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+		&selectedFeatures, &selectedFeatureAlphas);
+	auto gainIter = gains.begin();
+	++gainIter;
+	gains.erase(gains.begin(), gainIter);
+	
+	while(selectedFeatures.size() < nFeatures)	
+	{
+		fastSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+			&selectedFeatures, &selectedFeatureAlphas, &gains);
+
+		if (selectedFeatureAlphas.back().third < gainThreshold)
+		{
+			selectedFeatureAlphas.pop_back();
+			break;
+		}
+	}
+	
+	return selectedFeatureAlphas;
+}
+
 
 double zf(vector<Event> const &events, vector<double> const &ctxSums, double z,
 	size_t feature, double alpha)

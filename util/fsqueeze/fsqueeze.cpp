@@ -39,7 +39,7 @@ void usage(string const &programName)
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:g:n:");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:fg:n:");
 	
 	if (programOptions.arguments().size() != 1)
 	{
@@ -68,7 +68,12 @@ int main(int argc, char *argv[])
 	}
 
 	auto ds = fsqueeze::DataSet::readTADMDataSet(dataStream);
-	auto features = fsqueeze::featureSelection(ds, alphaThreshold, gradientThreshold, nFeatures);
+	
+	fsqueeze::SelectedFeatureAlphas features;
+	if (programOptions.option('f'))
+		features = fsqueeze::fastFeatureSelection(ds, alphaThreshold, gradientThreshold, nFeatures);
+	else
+		features = fsqueeze::featureSelection(ds, alphaThreshold, gradientThreshold, nFeatures);
 	
 	for (auto fIter = features.begin(); fIter != features.end(); ++fIter)
 		cout << fIter->first << "\t" << fIter->second << "\t" << fIter->third << endl;

@@ -3,6 +3,7 @@
 #include <iterator>
 #include <limits>
 #include <set>
+#include <stdexcept>
 #include <vector>
 
 #include <tr1/unordered_map>
