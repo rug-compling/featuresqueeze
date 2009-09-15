@@ -26,11 +26,10 @@ line.
 To do
 -----
 
-- Make robust for erroneous input (display an error rather than segfaulting).
 - Test with more datasets, the program currently fails on some datasets that
   are very much different from mine.
-- Implement fast feature selection as in [2].
-- Command line argument handling (e.g. for setting thresholds).
+- Handle NaNs better. Rather than just bailing out, print the results up to
+  that point.
 - Verbose output.
 
 License
