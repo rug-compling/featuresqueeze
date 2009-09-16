@@ -24,6 +24,9 @@
 #include <utility>
 #include <vector>
 
+#include "DataSet.hh"
+#include "Logger.hh"
+
 #include "util.hh"
 
 namespace fsqueeze {
@@ -32,8 +35,9 @@ typedef std::vector<Triple<size_t, double, double>> SelectedFeatureAlphas;
 typedef std::vector<std::vector<double>> Sums;
 typedef std::vector<double> Zs;
 
-SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, double alphaThreshold = 1e-10,
-	double gainThreshold = 1e-10, size_t nFeatures = std::numeric_limits<size_t>::max());
+SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger, 
+	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
+	size_t nFeatures = std::numeric_limits<size_t>::max());
 
 /**
  * Select features based on a dataset.
@@ -43,8 +47,9 @@ SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, double alphaThresh
  * @gainThreshold Threshold to determine the stopping point of the feature 
  *	selection cycle.
  */
-SelectedFeatureAlphas featureSelection(DataSet const &ds, double alphaThreshold = 1e-10,
-	double gainThreshold = 1e-10, size_t nFeatures = std::numeric_limits<size_t>::max());
+SelectedFeatureAlphas featureSelection(DataSet const &ds, Logger logger,
+	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
+	size_t nFeatures = std::numeric_limits<size_t>::max());
 
 inline double p_yx(double sum, double z)
 {

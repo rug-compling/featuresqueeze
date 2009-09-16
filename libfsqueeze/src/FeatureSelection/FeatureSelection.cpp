@@ -353,7 +353,8 @@ set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
 }
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
-	double alphaThreshold, double gainThreshold, size_t nFeatures)
+	Logger logger, double alphaThreshold, double gainThreshold,
+	size_t nFeatures)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -367,8 +368,12 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	{
 		fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
 			&selectedFeatures, &selectedFeatureAlphas);
+			
+		auto selected = selectedFeatureAlphas.back();
+		logger.message() << selected.first << "\t" << selected.second <<
+			"\t" << selected.third << "\n";
 		
-		if (selectedFeatureAlphas.back().third < gainThreshold)
+		if (selected.third < gainThreshold)
 		{
 			selectedFeatureAlphas.pop_back();
 			break;
@@ -443,7 +448,7 @@ void fastSelectionStage(DataSet const &dataSet,
 }
 
 SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
-	double alphaThreshold, double gainThreshold, size_t nFeatures)
+	Logger logger, double alphaThreshold, double gainThreshold, size_t nFeatures)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -460,6 +465,10 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	++gainIter;
 	gains.erase(gains.begin(), gainIter);
 	
+	auto selected = selectedFeatureAlphas.back();
+	logger.message() << selected.first << "\t" << selected.second <<
+		"\t" << selected.third << "\n";
+	
 	while(selectedFeatures.size() < nFeatures)	
 	{
 		fastSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
@@ -470,6 +479,10 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 			selectedFeatureAlphas.pop_back();
 			break;
 		}
+		
+		auto selected = selectedFeatureAlphas.back();
+		logger.message() << selected.first << "\t" << selected.second <<
+			"\t" << selected.third << "\n";
 	}
 	
 	return selectedFeatureAlphas;

@@ -24,6 +24,7 @@
 #include "FeatureSqueeze/stringutil.hh"
 #include "FeatureSqueeze/DataSet.hh"
 #include "FeatureSqueeze/FeatureSelection.hh"
+#include "FeatureSqueeze/Logger.hh"
 
 #include "ProgramOptions.hh"
 
@@ -69,14 +70,12 @@ int main(int argc, char *argv[])
 
 	auto ds = fsqueeze::DataSet::readTADMDataSet(dataStream);
 	
+	fsqueeze::Logger logger(cout, cerr);
 	fsqueeze::SelectedFeatureAlphas features;
 	if (programOptions.option('f'))
-		features = fsqueeze::fastFeatureSelection(ds, alphaThreshold, gradientThreshold, nFeatures);
+		features = fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
 	else
-		features = fsqueeze::featureSelection(ds, alphaThreshold, gradientThreshold, nFeatures);
+		features = fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
 	
-	for (auto fIter = features.begin(); fIter != features.end(); ++fIter)
-		cout << fIter->first << "\t" << fIter->second << "\t" << fIter->third << endl;
-
 	return 0;
 }
