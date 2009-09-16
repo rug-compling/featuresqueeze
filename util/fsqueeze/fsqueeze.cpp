@@ -33,8 +33,9 @@ using namespace std;
 void usage(string const &programName)
 {
 	cerr << "Usage: " << programName << " [OPTION] dataset" << endl << endl <<
-		"  -a val\t Alpha convergence threshold" << endl <<
-		"  -g val\t Gain threshold" << endl <<
+		"  -a val\t Alpha convergence threshold (default: 1e-6)" << endl <<
+		"  -f\t\t Fast selection algorithm (do not recalculate all gains)" << endl <<
+		"  -g val\t Gain threshold (default: 1e-6)" << endl <<
 		"  -n val\t Maximum number of features" << endl << endl;
 }
 
