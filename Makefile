@@ -20,7 +20,7 @@ libfsqueeze.a: $(LIBFSQUEEZE_OBJECTS)
 	ar cr $@ $(LIBFSQUEEZE_OBJECTS)
 
 fsqueeze: $(FSQUEEZE_OBJECTS) libfsqueeze.a
-	$(CXX) -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
+	$(CXX) -O2 -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
 
 clean:
 	rm -f libfsqueeze.a fsqueeze
