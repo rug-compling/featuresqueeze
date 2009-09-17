@@ -176,16 +176,19 @@ vector<vector<double>> initialSums(DataSet const &ds)
 	return sums;
 }
 
-unordered_map<size_t, double> r_f(unordered_map<size_t, double> const &expFeatureValues,
+unordered_map<size_t, double> r_f(FeatureSet const &features,
+	unordered_map<size_t, double> const &expFeatureValues,
 	unordered_map<size_t, double> const &expModelFeatureValues)
 {
 	unordered_map<size_t, double> r;
 	
-	for (auto iter = expFeatureValues.begin(); iter != expFeatureValues.end();
-			++iter)
-		r[iter->first] = iter->second <=
-			expModelFeatureValues.find(iter->first)->second ? 1 : -1;
-	
+	for (auto iter = features.begin(); iter != features.end(); ++iter)
+	{
+		auto expIter = expFeatureValues.find(*iter);
+		r[*iter] = expIter->second <=
+			expModelFeatureValues.find(expIter->first)->second ? 1 : -1;
+	}
+
 	return r;
 }
 
@@ -348,7 +351,7 @@ set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
 	auto ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, false, *sums, *zs);
 	auto unconvergedFs = activeFeatures(ctxActiveFs);
 
-	auto r = r_f(expVals, expModelVals);
+	auto r = r_f(unconvergedFs, expVals, expModelVals);
 	
 	auto a = a_f(unconvergedFs);
 
@@ -423,7 +426,7 @@ void fastSelectionStage(DataSet const &dataSet,
 		auto ctxActiveFs = contextActiveFeatures(dataSet, recalcFeatures, true, *sums, *zs);
 		auto unconvergedFs = activeFeatures(ctxActiveFs);
 
-		auto r = r_f(expVals, expModelVals);
+		auto r = r_f(unconvergedFs, expVals, expModelVals);
 	
 		auto a = a_f(unconvergedFs);
 
