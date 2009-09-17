@@ -87,24 +87,46 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 	{
 		FeatureSet active;
 
+		// This context can not have active features if its probability is zero.
+		if (ctxIter->prob() == 0.0)
+		{
+			ctxActive.push_back(active);
+			continue;
+		}
+
 		for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin();
 			evtIter != ctxIter->events().end(); ++evtIter, ++sumIter)
 		{
-			auto pyx = p_yx(*sumIter, *zIter);
-			
-			for (auto fIter = evtIter->features().begin();
-					fIter != evtIter->features().end();
-					++fIter)
-				if (includeSelected)
+			// This event can not have active features if its probability is zero.
+			if (p_yx(*sumIter, *zIter) == 0.0)
+				continue;
+
+			auto &features = evtIter->features();
+
+			// Iterate over the provided feature set if it is small.
+			if (includeSelected && selectedFeatures.size() < evtIter->features().size())
+				for (auto fIter = selectedFeatures.begin(); fIter != selectedFeatures.end();
+						++fIter)
 				{
-					if (selectedFeatures.find(fIter->first) != selectedFeatures.end() &&
-							fIter->second.value() * pyx * ctxIter->prob() != 0.0)
-						active.insert(fIter->first);
-				}	
-				else
-					if (selectedFeatures.find(fIter->first) == selectedFeatures.end() &&
-							fIter->second.value() * pyx * ctxIter->prob() != 0.0)
-						active.insert(fIter->first);
+					auto f = features.find(*fIter);
+					if (f != features.end() && f->second.value() != 0.0)
+						active.insert(*fIter);
+				}
+			
+			else
+				for (auto fIter = evtIter->features().begin();
+						fIter != evtIter->features().end();
+						++fIter)
+					if (includeSelected)
+					{
+						if (selectedFeatures.find(fIter->first) != selectedFeatures.end() &&
+								fIter->second.value() != 0.0)
+							active.insert(fIter->first);
+					}	
+					else
+						if (selectedFeatures.find(fIter->first) == selectedFeatures.end() &&
+								fIter->second.value() != 0.0)
+							active.insert(fIter->first);
 		}
 		
 		ctxActive.push_back(active);
