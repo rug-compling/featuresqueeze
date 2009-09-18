@@ -452,16 +452,17 @@ void fastSelectionStage(DataSet const &dataSet,
 		
 		size_t f = newGains.begin()->first;
 		auto gain = newGains.begin()->second;
+		if (isnan(gain))
+			throw runtime_error("Refusing to select NaNs");
+
 		auto alpha = a[f];
 
 		auto gainIter = gains->begin();
 		
 		++gainIter;
 		
-		if (isnan(gain))
-			throw runtime_error("Refusing to select NaNs");
 
-		if (gainIter->second <= gain)
+		if (gains->size() == 1 || gainIter->second <= gain || isnan(gainIter->second))
 		{
 			// The current feature has a higher recalculated gain than the
 			// second-highest feature. Select the current feature, and remove
