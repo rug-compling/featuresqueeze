@@ -214,9 +214,11 @@ void updateGradients(DataSet const &dataSet,
 			auto newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, *fsIter,
 				alphas.find(*fsIter)->second);
 			
+			vector<double> newSums(ctxSumIter->size(), 0);
 			auto p_fx = 0.0;
-			for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin();
-				evtIter != ctxIter->events().end(); ++evtIter, ++sumIter)
+			for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
+				newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
+				++evtIter, ++sumIter, ++newSumIter)
 			{
 				auto fVal = 0.0;
 				auto iter = evtIter->features().find(*fsIter);
@@ -224,13 +226,15 @@ void updateGradients(DataSet const &dataSet,
 					fVal = iter->second.value();
 				
 				auto newSum = *sumIter * exp(alphas.find(*fsIter)->second * fVal);
+				*newSumIter = newSum;
 				
 				p_fx += p_yx(newSum, newZ) * fVal;
 			}
 			
 			auto gppSum = 0.0;
-			for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin();
-				evtIter != ctxIter->events().end(); ++evtIter, ++sumIter)
+			for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
+				newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
+				++evtIter, ++sumIter, ++newSumIter)
 			{
 				auto fVal = 0.0;
 				auto iter = evtIter->features().find(*fsIter);
