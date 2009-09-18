@@ -243,8 +243,8 @@ void updateGradients(DataSet const &dataSet,
 				
 				auto newSum = *newSumIter;
 				
-				gppSum += p_yx(newSum, newZ) * (fVal * fVal - fVal * p_fx);
-				//gppSum += p_yx(newSum, newZ)
+				//gppSum += p_yx(newSum, newZ) * (fVal * fVal - fVal * p_fx);
+				gppSum += p_yx(newSum, newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
 			}
 			
 			(*gp)[*fsIter] = (*gp)[*fsIter] - ctxIter->prob() * p_fx;
