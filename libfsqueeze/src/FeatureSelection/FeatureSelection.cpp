@@ -241,9 +241,10 @@ void updateGradients(DataSet const &dataSet,
 				if (iter != evtIter->features().end())
 					fVal = iter->second.value();
 				
-				auto newSum = *sumIter * exp(alphas.find(*fsIter)->second * fVal);
+				auto newSum = *newSumIter;
 				
 				gppSum += p_yx(newSum, newZ) * (fVal * fVal - fVal * p_fx);
+				//gppSum += p_yx(newSum, newZ)
 			}
 			
 			(*gp)[*fsIter] = (*gp)[*fsIter] - ctxIter->prob() * p_fx;
