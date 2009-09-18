@@ -393,16 +393,20 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	{
 		fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
 			&selectedFeatures, &selectedFeatureAlphas);
-			
+		
+		if (selectedFeatureAlphas.size() == 0)
+			break;
+
 		auto selected = selectedFeatureAlphas.back();
-		logger.message() << selected.first << "\t" << selected.second <<
-			"\t" << selected.third << "\n";
 		
 		if (selected.third < gainThreshold)
 		{
 			selectedFeatureAlphas.pop_back();
 			break;
 		}
+		
+		logger.message() << selected.first << "\t" << selected.second <<
+			"\t" << selected.third << "\n";
 	}
 	
 	return selectedFeatureAlphas;
