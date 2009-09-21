@@ -452,15 +452,14 @@ void fastSelectionStage(DataSet const &dataSet,
 		
 		size_t f = newGains.begin()->first;
 		auto gain = newGains.begin()->second;
-		if (isnan(gain))
-			throw runtime_error("Refusing to select NaNs");
 
 		auto alpha = a[f];
 
-		auto gainIter = gains->begin();
-		
+		auto gainIter = gains->begin();		
 		++gainIter;
 		
+		if (isnan(gain) && isnan(gainIter->second))
+			throw runtime_error("Refusing to select NaNs");
 
 		if (gains->size() == 1 || gainIter->second <= gain || isnan(gainIter->second))
 		{
