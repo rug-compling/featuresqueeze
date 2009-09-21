@@ -267,7 +267,7 @@ FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 		size_t f = *fIter;
 		double rF = r.find(f)->second;
 		auto newAlpha = (*alphas)[f] + rF * log(1 - rF * (gp.find(f)->second / gpp.find(f)->second));
-		auto delta = abs((*alphas)[f] - newAlpha);
+		auto delta = fabs((*alphas)[f] - newAlpha);
 		(*alphas)[f] = newAlpha;
 		if (delta < alphaThreshold || isnan(delta))
 			newUnconvergedFs.erase(f);
