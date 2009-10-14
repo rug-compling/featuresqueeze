@@ -33,6 +33,18 @@ namespace fsqueeze {
 
 typedef std::vector<Triple<size_t, double, double>> SelectedFeatureAlphas;
 
+/**
+ * Select features based on a dataset using the fast selection algorithm.
+ * This algorithm assumes that gains of candidate features rarely increase
+ * as a result of adding a feature.
+ *
+ * @ds The dataset to mine for features
+ * @logger Logger for printing output
+ * @alphaThreshold Threshold to determine convergence of alpha values
+ * @gainThreshold Threshold to determine the stopping point of the feature 
+ *	selection cycle.
+ * @nFeatures Maximum number of features.
+ */
 SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger, 
 	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
 	size_t nFeatures = std::numeric_limits<size_t>::max());
@@ -41,9 +53,11 @@ SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger,
  * Select features based on a dataset.
  *
  * @ds The dataset to mine for features
+ * @logger Logger for printing output
  * @alphaThreshold Threshold to determine convergence of alpha values
  * @gainThreshold Threshold to determine the stopping point of the feature 
  *	selection cycle.
+ * @nFeatures Maximum number of features.
  */
 SelectedFeatureAlphas featureSelection(DataSet const &ds, Logger logger,
 	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,

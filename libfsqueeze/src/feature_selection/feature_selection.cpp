@@ -64,7 +64,7 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 
 			auto &features = evtIter->features();
 
-			// Iterate over the provided feature set if it is small.
+			// Iterate over the provided feature set if it is small...
 			if (includeSelected && selectedFeatures.size() < evtIter->features().size())
 				for (auto fIter = selectedFeatures.begin(); fIter != selectedFeatures.end();
 						++fIter)
@@ -73,7 +73,7 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 					if (f != features.end() && f->second.value() != 0.0)
 						active.insert(*fIter);
 				}
-			
+			// ...otherwise iterate over all features of the current event.
 			else
 				for (auto fIter = evtIter->features().begin();
 						fIter != evtIter->features().end();
@@ -96,6 +96,7 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 	return ctxActive;
 }
 
+// Active features in at least one context.
 FeatureSet activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 {
 	FeatureSet active;
@@ -107,6 +108,7 @@ FeatureSet activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 	return active;
 }
 
+// R(f)
 unordered_map<size_t, double> r_f(FeatureSet const &features,
 	unordered_map<size_t, double> const &expFeatureValues,
 	unordered_map<size_t, double> const &expModelFeatureValues)
@@ -174,7 +176,6 @@ void updateGradients(DataSet const &dataSet,
 				
 				auto newSum = *newSumIter;
 				
-				//gppSum += p_yx(newSum, newZ) * (fVal * fVal - fVal * p_fx);
 				gppSum += p_yx(newSum, newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
 			}
 			
@@ -184,6 +185,7 @@ void updateGradients(DataSet const &dataSet,
 	}
 }
 
+// Calculate feature weights for the current model, given G', G'' and R(f).
 FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 	unordered_map<size_t, double> const &r,
 	unordered_map<size_t, double> const &gp,
@@ -207,6 +209,7 @@ FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 	return newUnconvergedFs;
 }
 
+// Initial feature weights (0.0).
 unordered_map<size_t, double> a_f(FeatureSet const &features)
 {
 	unordered_map<size_t, double> a;
@@ -218,6 +221,7 @@ unordered_map<size_t, double> a_f(FeatureSet const &features)
 	return a;
 }
 
+// Calculate the gain of adding each feature.
 set<pair<size_t, double>, GainLess> calcGains(DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
 	unordered_map<size_t, double> const &expFeatureValues,
