@@ -10,6 +10,7 @@
 #include <tr1/unordered_set>
 
 #include <FeatureSqueeze/functional.hh>
+#include <FeatureSqueeze/maxent.hh>
 #include <FeatureSqueeze/util.hh>
 
 #include <FeatureSqueeze/DataSet.hh>

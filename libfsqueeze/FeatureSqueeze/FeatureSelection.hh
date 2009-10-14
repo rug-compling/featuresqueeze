@@ -32,8 +32,6 @@
 namespace fsqueeze {
 
 typedef std::vector<Triple<size_t, double, double>> SelectedFeatureAlphas;
-typedef std::vector<std::vector<double>> Sums;
-typedef std::vector<double> Zs;
 
 SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger, 
 	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
@@ -50,11 +48,6 @@ SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger,
 SelectedFeatureAlphas featureSelection(DataSet const &ds, Logger logger,
 	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
 	size_t nFeatures = std::numeric_limits<size_t>::max());
-
-inline double p_yx(double sum, double z)
-{
-	return sum / z;
-}
 
 }
 
