@@ -1,5 +1,5 @@
+CXXFLAGS=-std=c++0x -O3 -Wall -pedantic -Ilibfsqueeze
 CXX=g++-4.4
-CXXFLAGS=-std=c++0x -O2 -Wall -pedantic -Ilibfsqueeze
 
 LIBFSQUEEZE_SOURCES=\
 	libfsqueeze/src/DataSet/DataSet.cpp \
@@ -20,7 +20,7 @@ libfsqueeze.a: $(LIBFSQUEEZE_OBJECTS)
 	ar cr $@ $(LIBFSQUEEZE_OBJECTS)
 
 fsqueeze: $(FSQUEEZE_OBJECTS) libfsqueeze.a
-	$(CXX) -O2 -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
+	$(CXX) -O3 -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
 
 clean:
 	rm -f libfsqueeze.a fsqueeze
