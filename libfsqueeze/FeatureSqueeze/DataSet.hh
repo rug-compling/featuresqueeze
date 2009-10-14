@@ -77,7 +77,7 @@ public:
 private:
 	void copy(DataSet const &other);
 	void buildFeatureMap();
-	double contextSum();
+	double contextSum() const;
 	std::tr1::unordered_set<size_t> dynamicFeatures() const;
 	void normalize();
 	void normalizeContexts(double ctxSum);
@@ -100,6 +100,21 @@ private:
 	double d_ctxSum;
 };
 
+template <typename T>
+struct SumProb
+{
+	SumProb(double initial = 0.0) : sum(initial) {}
+	void operator()(T const &v);
+	double sum;
+};
+
+// Summed context probabilities.
+inline double DataSet::contextSum() const
+{
+	return for_each(d_contexts.begin(), d_contexts.end(), SumProb<Context>()).sum;
+}
+
+
 inline ContextVector const &DataSet::contexts() const
 {
 	return d_contexts;
@@ -113,6 +128,12 @@ inline DsFeatureMap const &DataSet::features() const
 inline Event NormalizeEvent::operator()(Event const &event) const
 {
 	return Event(event.prob() / d_ctxSum, event.features());
+}
+
+template <typename T>
+void SumProb<T>::operator()(T const &v)
+{
+	sum += v.prob();
 }
 
 }

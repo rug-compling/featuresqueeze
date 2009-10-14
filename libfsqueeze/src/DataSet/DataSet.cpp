@@ -53,6 +53,8 @@ void DataSet::copy(DataSet const &other)
 	buildFeatureMap();
 }
 
+// Build a map of features, where the feature identifiers are keys and Event/Feature
+// instance pairs values. Useful for calculating expected feature values.
 void DataSet::buildFeatureMap()
 {
 	d_features.clear();
@@ -66,17 +68,8 @@ void DataSet::buildFeatureMap()
 				d_features[fIter->first].push_back(make_pair(&(*evtIter), &(fIter->second)));
 }
 
-double DataSet::contextSum()
-{
-	double ctxSum = 0.0;
-
-	for (auto ctxIter = d_contexts.begin(); ctxIter != d_contexts.end();
-			++ctxIter)
-		ctxSum += ctxIter->prob();
-	
-	return ctxSum;
-}
-
+// Find 'dynamic' features. Dynamic features are features that do not retain the
+// same value within at least one context.
 unordered_set<size_t> DataSet::dynamicFeatures() const
 {
 	unordered_set<size_t> changing;
@@ -114,6 +107,11 @@ unordered_set<size_t> DataSet::dynamicFeatures() const
 	return changing;
 }
 
+// Normalize context probabilities and context,event joint probabilities.
+// Each event has a weighting/frequency (e.g. a fluency quality estimation) -
+// we normalize over the sum of all weights. As a result, contexts that
+// provide more information about qualitative realizations are weighted
+// more heavily. (In line with Van Noord & Malouf, 2005.)
 void DataSet::normalize()
 {
 	sumContexts();
@@ -141,6 +139,12 @@ void DataSet::normalizeEvents(double ctxSum)
 	}
 }
 
+// Read an event line. An event line consists of:
+//
+// - The event frequency/weight.
+// - The number of non-zero features.
+// - Feature/value pairs.
+//
 Event DataSet::readEvent(string const &eventLine)
 {
 	auto lineParts = stringSplit(eventLine);
@@ -166,6 +170,11 @@ Event DataSet::readEvent(string const &eventLine)
 	return Event(eventProb, features);
 }
 
+// Read a context, a context consists of:
+//
+// - A line indicating the number of events within the context.
+// - Event lines.
+//
 Context DataSet::readContext(istream &iss)
 {
 	string nEventStr;
@@ -204,6 +213,7 @@ DataSet DataSet::readTADMDataSet(istream &iss)
 	return DataSet(contexts);
 }
 
+// Remove all features that are not dynamic.
 void DataSet::removeStaticFeatures()
 {
 	auto dynFs = dynamicFeatures();
@@ -235,10 +245,9 @@ void DataSet::sumContexts()
 	for (auto ctxIter = d_contexts.begin(); ctxIter != d_contexts.end();
 			++ctxIter)
 	{
-		auto sum = 0.0;
-		for (auto evtIter = ctxIter->events().begin(); evtIter != ctxIter->events().end();
-				++evtIter)
-			sum += evtIter->prob();
+		auto sum = for_each(ctxIter->events().begin(), ctxIter->events().end(),
+			SumProb<Event>()).sum;
+
 		ctxIter->prob(sum);
 	}
 }
