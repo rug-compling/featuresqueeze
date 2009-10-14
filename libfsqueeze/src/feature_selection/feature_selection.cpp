@@ -17,7 +17,7 @@
  * MA 02110-1301 USA
  */
 
-#include "FeatureSelection.ih"
+#include "feature_selection.ih"
 
 struct GainLess
 {

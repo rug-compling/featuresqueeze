@@ -3,7 +3,7 @@ CXX=g++-4.4
 
 LIBFSQUEEZE_SOURCES=\
 	libfsqueeze/src/DataSet/DataSet.cpp \
-	libfsqueeze/src/FeatureSelection/FeatureSelection.cpp \
+	libfsqueeze/src/feature_selection/feature_selection.cpp \
 	libfsqueeze/src/maxent/maxent.cpp
 LIBFSQUEEZE_OBJECTS=$(LIBFSQUEEZE_SOURCES:.cpp=.o)
 

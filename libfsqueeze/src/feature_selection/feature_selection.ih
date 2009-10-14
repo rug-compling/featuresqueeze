@@ -14,7 +14,7 @@
 #include <FeatureSqueeze/util.hh>
 
 #include <FeatureSqueeze/DataSet.hh>
-#include <FeatureSqueeze/FeatureSelection.hh>
+#include <FeatureSqueeze/feature_selection.hh>
 
 using namespace std;
 using namespace std::tr1;

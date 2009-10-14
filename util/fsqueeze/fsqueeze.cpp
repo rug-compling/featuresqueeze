@@ -23,8 +23,8 @@
 
 #include "FeatureSqueeze/stringutil.hh"
 #include "FeatureSqueeze/DataSet.hh"
-#include "FeatureSqueeze/FeatureSelection.hh"
 #include "FeatureSqueeze/Logger.hh"
+#include "FeatureSqueeze/feature_selection.hh"
 
 #include "ProgramOptions.hh"
 
