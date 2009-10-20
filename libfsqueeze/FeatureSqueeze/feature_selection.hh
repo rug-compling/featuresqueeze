@@ -20,7 +20,9 @@
 #ifndef FEATURE_SELECTION_HH
 #define FEATURE_SELECTION_HH
 
+#include <cmath>
 #include <limits>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -32,6 +34,23 @@
 namespace fsqueeze {
 
 typedef std::vector<Triple<size_t, double, double>> SelectedFeatureAlphas;
+
+struct GainLess
+{
+	bool operator()(std::pair<size_t, double> const &f1, std::pair<size_t, double> const &f2)
+	{
+		// Treat NaN as no gain.
+		double g1 = std::isnan(f1.second) ? 0.0 : f1.second;
+		double g2 = std::isnan(f2.second) ? 0.0 : f2.second;
+		
+		if (g1 == g2)
+			return f1.first < f2.first;
+		
+		return g1 > g2;
+	}
+};
+
+typedef std::set<std::pair<size_t, double>, GainLess> OrderedGains;
 
 /**
  * Select features based on a dataset using the fast selection algorithm.
@@ -61,7 +80,8 @@ SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger,
  */
 SelectedFeatureAlphas featureSelection(DataSet const &ds, Logger logger,
 	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
-	size_t nFeatures = std::numeric_limits<size_t>::max());
+	size_t nFeatures = std::numeric_limits<size_t>::max(),
+	bool detectOverlap = false);
 
 }
 
