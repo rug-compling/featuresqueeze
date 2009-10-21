@@ -254,7 +254,9 @@ unordered_map<int, double> orderedGainsToMap(OrderedGains const &gains)
 	return gainMap;
 }
 
-unordered_map<int, double> gainDeltas(OrderedGains const &prevGains, OrderedGains const &gains)
+// Calculate (un)normalized deltas of gains.
+unordered_map<int, double> gainDeltas(OrderedGains const &prevGains, OrderedGains const &gains,
+	double gainThreshold, bool normalize)
 {
 	auto gainMap = orderedGainsToMap(gains);
 	auto prevGainMap = orderedGainsToMap(prevGains);
@@ -264,19 +266,27 @@ unordered_map<int, double> gainDeltas(OrderedGains const &prevGains, OrderedGain
 	for (auto iter = gainMap.begin(); iter != gainMap.end(); ++iter)
 	{
 		auto prevIter = prevGainMap.find(iter->first);
-		if (prevIter != prevGainMap.end() && !isnan(iter->second) && !isnan(prevIter->second))
-			gainDeltas[iter->first] = prevIter->second - iter->second;
+		if (prevIter != prevGainMap.end() && !isnan(iter->second) &&
+			!isnan(prevIter->second) && prevIter->second > gainThreshold)
+		{
+			double gainDelta = prevIter->second - iter->second;
+			
+			if (normalize)
+				gainDelta /= prevIter->second;
+
+			gainDeltas[iter->first] = gainDelta;
+		}
 	}
 	
 	return gainDeltas;
 }
 
 OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
-	OrderedGains const &gains)
+	OrderedGains const &gains, double gainThreshold, bool normalizeDeltas)
 {
 	OrderedGains overlappingFs;
 
-	auto deltas = gainDeltas(prevGains, gains);
+	auto deltas = gainDeltas(prevGains, gains, gainThreshold, normalizeDeltas);
 	
 	// Average
 	double sum = 0.0;
@@ -382,7 +392,8 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 
 		if (detectOverlap)
 		{
-			auto overlappingFs = findOverlappingFeatures(gains.first, gains.second);
+			auto overlappingFs = findOverlappingFeatures(gains.first, gains.second,
+				gainThreshold, true);
 			logger.message() << "\t";
 			copy(overlappingFs.begin(), overlappingFs.end(),
 				ostream_iterator<pair<size_t, double>>(logger.message(), "\t"));
