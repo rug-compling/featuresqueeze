@@ -1,0 +1,29 @@
+#!/usr/bin/python
+#
+# Replace the feature numbers in the input by feature names. This
+# program reads fsqueeze output from stdin. A feature number
+# conversion table should be provided as an argument. This table
+# should contain the feature number and name, separated by a
+# vertical bar ('|'). For instance:
+#
+# 0|feature0
+# 1|feature1
+#
+
+import sys
+
+if __name__ == "__main__":
+	if len(sys.argv) != 2:
+		print >> sys.stderr, "Usage: %s feature_file" % sys.argv[0]
+		sys.exit(1)
+
+	features = dict()
+	for line in open(sys.argv[1]):
+		lineParts = line.strip().split('|')
+		features[lineParts[0]] = lineParts[1]
+
+	for line in sys.stdin:
+		lineParts = line.split()
+		fName = features[lineParts[0]]
+
+		print "%s\t%s\t%s" % (lineParts[1], lineParts[2], fName)
