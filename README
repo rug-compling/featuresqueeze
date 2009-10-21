@@ -37,6 +37,7 @@ fsqueeze [OPTION] dataset
   -f		 Fast selection algorithm (do not recalculate all gains)
   -g val	 Gain threshold (default: 1e-6)
   -n val	 Maximum number of features
+  -o             Find overlap (incompatible with -f)
 
 Where 'dataset' is a data set in TADM format minus the optional header
 line.
