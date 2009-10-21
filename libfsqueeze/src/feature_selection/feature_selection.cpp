@@ -271,9 +271,10 @@ unordered_map<int, double> gainDeltas(OrderedGains const &prevGains, OrderedGain
 	return gainDeltas;
 }
 
-set<size_t> overlapping(OrderedGains const &prevGains, OrderedGains const &gains)
+OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
+	OrderedGains const &gains)
 {
-	set<size_t> overlappingFs;
+	OrderedGains overlappingFs;
 
 	auto deltas = gainDeltas(prevGains, gains);
 	
@@ -294,7 +295,7 @@ set<size_t> overlapping(OrderedGains const &prevGains, OrderedGains const &gains
 	{
 		double zIndex = (iter->second - avg) / sd;
 		if (fabs(zIndex) > SE99)
-			overlappingFs.insert(iter->first);
+			overlappingFs.insert(make_pair(iter->first, iter->second));
 	}
 	
 	return overlappingFs;
@@ -381,9 +382,10 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 
 		if (detectOverlap)
 		{
-			auto overlappingFs = overlapping(gains.first, gains.second);
+			auto overlappingFs = findOverlappingFeatures(gains.first, gains.second);
 			logger.message() << "\t";
-			copy(overlappingFs.begin(), overlappingFs.end(), ostream_iterator<size_t>(logger.message(), "\t"));
+			copy(overlappingFs.begin(), overlappingFs.end(),
+				ostream_iterator<pair<size_t, double>>(logger.message(), "\t"));
 		}
 		
 		logger.message() << "\n";

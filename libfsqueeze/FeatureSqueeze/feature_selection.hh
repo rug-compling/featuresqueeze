@@ -21,6 +21,7 @@
 #define FEATURE_SELECTION_HH
 
 #include <cmath>
+#include <iostream>
 #include <limits>
 #include <set>
 #include <utility>
@@ -30,6 +31,15 @@
 #include "Logger.hh"
 
 #include "util.hh"
+
+namespace std {
+
+inline std::ostream &operator<<(std::ostream &out, std::pair<size_t, double> const &p)
+{
+	return out << p.second << "#" << p.first;
+}
+
+}
 
 namespace fsqueeze {
 
