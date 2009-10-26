@@ -1,0 +1,16 @@
+This directory contains sample data based on 100 sentences from the
+Dutch Wikipedia, extracted in the following manner:
+
+- Parse the sentences using the Alpino parser. Create an abstract
+  dependency tree of the best parse.
+- Generate from the abstract dependency trees using the Alpino
+  generator, extracting features.
+- Score each realization for an abstract dependency tree by comparing
+  it to the reference sentence.
+
+Simple execute:
+
+make fluency.best_features
+
+This will do feature selection, and rewrite feature numbers into
+feature names.
