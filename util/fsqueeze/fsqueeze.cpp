@@ -36,16 +36,24 @@ void usage(string const &programName)
 		"  -a val\t Alpha convergence threshold (default: 1e-6)" << endl <<
 		"  -f\t\t Fast selection algorithm (do not recalculate all gains)" << endl <<
 		"  -g val\t Gain threshold (default: 1e-6)" << endl <<
-		"  -n val\t Maximum number of features" << endl << endl;
+		"  -n val\t Maximum number of features" << endl <<
+		"  -o\t\t Find overlap (incompatible with -f)" << endl << endl;
 }
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:fg:n:");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:fg:n:o");
 	
 	if (programOptions.arguments().size() != 1)
 	{
 		usage(programOptions.programName());
+		return 1;
+	}
+
+	if (programOptions.option('o') && programOptions.option('f'))
+	{
+		cerr << "Overlap detection (-o) and fast selection(-f) cannot be used " <<
+			"simultaneausly!" << endl << endl;
 		return 1;
 	}
 	
@@ -72,11 +80,11 @@ int main(int argc, char *argv[])
 	auto ds = fsqueeze::DataSet::readTADMDataSet(dataStream);
 	
 	fsqueeze::Logger logger(cout, cerr);
-	fsqueeze::SelectedFeatureAlphas features;
 	if (programOptions.option('f'))
-		features = fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
+		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
 	else
-		features = fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
+		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
+			programOptions.option('o'));
 	
 	return 0;
 }

@@ -19,21 +19,6 @@
 
 #include "feature_selection.ih"
 
-struct GainLess
-{
-	bool operator()(pair<size_t, double> const &f1, pair<size_t, double> const &f2)
-	{
-		// Treat NaN as no gain.
-		double g1 = isnan(f1.second) ? 0.0 : f1.second;
-		double g2 = isnan(f2.second) ? 0.0 : f2.second;
-		
-		if (g1 == g2)
-			return f1.first < f2.first;
-		
-		return g1 > g2;
-	}
-};
-
 double zf(vector<Event> const &events, vector<double> const &ctxSums, double z,
 	size_t feature, double alpha);
 
@@ -222,7 +207,7 @@ unordered_map<size_t, double> a_f(FeatureSet const &features)
 }
 
 // Calculate the gain of adding each feature.
-set<pair<size_t, double>, GainLess> calcGains(DataSet const &dataSet,
+OrderedGains calcGains(DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
 	unordered_map<size_t, double> const &expFeatureValues,
 	unordered_map<size_t, double> const &alphas,
@@ -247,7 +232,7 @@ set<pair<size_t, double>, GainLess> calcGains(DataSet const &dataSet,
 		}
 	}
 	
-	set<pair<size_t, double>, GainLess> gains;
+	OrderedGains gains;
 	for (auto alphaIter = alphas.begin(); alphaIter != alphas.end();
 			++alphaIter)
 		gains.insert(make_pair(alphaIter->first,
@@ -258,7 +243,80 @@ set<pair<size_t, double>, GainLess> calcGains(DataSet const &dataSet,
 	return gains;
 }
 
-set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
+// Hmpf...
+unordered_map<int, double> orderedGainsToMap(OrderedGains const &gains)
+{
+	unordered_map<int, double> gainMap;
+
+	for (auto iter = gains.begin(); iter != gains.end(); ++iter)
+		gainMap[iter->first] = iter->second;
+	
+	return gainMap;
+}
+
+// Calculate (un)normalized deltas of gains.
+unordered_map<int, double> gainDeltas(OrderedGains const &prevGains, OrderedGains const &gains,
+	double gainThreshold, bool normalize)
+{
+	auto gainMap = orderedGainsToMap(gains);
+	auto prevGainMap = orderedGainsToMap(prevGains);
+	
+	unordered_map<int, double> gainDeltas;
+	
+	for (auto iter = gainMap.begin(); iter != gainMap.end(); ++iter)
+	{
+		auto prevIter = prevGainMap.find(iter->first);
+		if (prevIter != prevGainMap.end() && !isnan(iter->second) &&
+			!isnan(prevIter->second) && prevIter->second > gainThreshold)
+		{
+			double gainDelta = prevIter->second - iter->second;
+
+			if (normalize)
+			{
+				if (gainDelta > 0.0)
+					gainDelta /= prevIter->second;
+				else
+					gainDelta /= iter->second;
+			}
+
+			gainDeltas[iter->first] = gainDelta;
+		}
+	}
+	
+	return gainDeltas;
+}
+
+OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
+	OrderedGains const &gains, double gainThreshold, bool normalizeDeltas)
+{
+	OrderedGains overlappingFs;
+
+	auto deltas = gainDeltas(prevGains, gains, gainThreshold, normalizeDeltas);
+	
+	// Average
+	double sum = 0.0;
+	for (auto iter = deltas.begin(); iter != deltas.end(); ++iter)
+		sum += iter->second;
+	double avg = sum / deltas.size();
+	
+	// Standard deviation
+	double sqDiffSum = 0.0;
+	for (auto iter = deltas.begin(); iter != deltas.end(); ++iter)
+		sqDiffSum += pow(iter->second - avg, 2);
+	double sd = sqrt(sqDiffSum / deltas.size());
+	
+	double const SE99 = 2.68;
+	for (auto iter = deltas.begin(); iter != deltas.end(); ++iter)
+	{
+		double zIndex = (iter->second - avg) / sd;
+		if (fabs(zIndex) > SE99)
+			overlappingFs.insert(make_pair(iter->first, iter->second));
+	}
+	
+	return overlappingFs;
+}
+
+OrderedGains fullSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
 	unordered_map<size_t, double> const &expVals,
 	vector<double> *zs,
@@ -291,6 +349,7 @@ set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
 	auto maxAlpha = a[maxF];
 
 	adjustModel(dataSet, maxF, maxAlpha, sums, zs);
+		
 	selectedFeatures->insert(maxF);
 	selectedFeatureAlphas->push_back(makeTriple(maxF, maxAlpha, maxGain));
 	
@@ -299,7 +358,7 @@ set<pair<size_t, double>, GainLess> fullSelectionStage(DataSet const &dataSet,
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	Logger logger, double alphaThreshold, double gainThreshold,
-	size_t nFeatures)
+	size_t nFeatures, bool detectOverlap)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -308,14 +367,34 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	auto sums = initialSums(dataSet);
 	
 	auto expVals = expFeatureValues(dataSet);
-
+	
+	OrderedGains prevGains;
 	while(selectedFeatures.size() < nFeatures)	
 	{
-		fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
-			&selectedFeatures, &selectedFeatureAlphas);
+		OrderedGains gains;
+		if (detectOverlap)
+			gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+				&selectedFeatures, &selectedFeatureAlphas);
+		else
+			fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+				&selectedFeatures, &selectedFeatureAlphas);
 		
 		if (selectedFeatureAlphas.size() == 0)
 			break;
+			
+		if (detectOverlap)
+		{
+			if (prevGains.size() != 0)
+			{
+				auto overlappingFs = findOverlappingFeatures(prevGains, gains,
+					gainThreshold, true);
+				copy(overlappingFs.begin(), overlappingFs.end(),
+					ostream_iterator<pair<size_t, double>>(logger.message(), "\t"));
+				logger.message() << "\n";
+			}
+
+			prevGains = gains;
+		}
 
 		auto selected = selectedFeatureAlphas.back();
 		
@@ -326,7 +405,9 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 		}
 		
 		logger.message() << selected.first << "\t" << selected.second <<
-			"\t" << selected.third << "\n";
+			"\t" << selected.third;
+		
+		logger.message() << "\n";
 	}
 	
 	return selectedFeatureAlphas;
@@ -339,7 +420,7 @@ void fastSelectionStage(DataSet const &dataSet,
 	vector<vector<double>> *sums,
 	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas,
-	set<pair<size_t, double>, GainLess> *gains)
+	OrderedGains *gains)
 {
 	auto expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
 
