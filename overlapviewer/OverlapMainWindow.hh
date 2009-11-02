@@ -6,22 +6,21 @@
 
 #include "ui_OverlapMainWindow.h"
 
+#include "DataSet.hh"
+
 namespace overlapviewer {
 
 class OverlapMainWindow : public QMainWindow
 {
 	Q_OBJECT
-
 public:
-	OverlapMainWindow(QWidget *parent = 0);
+	OverlapMainWindow(SelectedFeaturesPtr selectedFeatures);
 private:
-	Ui::OverlapMainWindow d_overlapMainWindow;
-};
+	void updateFeatures();
 
-inline OverlapMainWindow::OverlapMainWindow(QWidget *)
-{
-	d_overlapMainWindow.setupUi(this);
-}
+	Ui::OverlapMainWindow d_overlapMainWindow;
+	SelectedFeaturesPtr d_selectedFeatures;
+};
 
 }
 

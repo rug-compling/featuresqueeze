@@ -26,7 +26,23 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <widget class="QListWidget" name="featuresListWidget"/>
+         <widget class="QTreeWidget" name="featuresTreeWidget">
+          <column>
+           <property name="text">
+            <string>Name</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Gain</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Alpha</string>
+           </property>
+          </column>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -36,7 +52,18 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QListWidget" name="overlappingListWidget"/>
+         <widget class="QTreeWidget" name="overlapTreeWidget">
+          <column>
+           <property name="text">
+            <string>Feature</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Normalized gain difference</string>
+           </property>
+          </column>
+         </widget>
         </item>
        </layout>
       </widget>
