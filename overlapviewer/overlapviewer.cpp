@@ -1,3 +1,6 @@
+#include <stdexcept>
+#include <string>
+
 #include <QApplication>
 #include <QFile>
 #include <QTextStream>
@@ -8,7 +11,31 @@
 
 using namespace std;
 
-DataSetPtr readSelectedFeatures(char *filename)
+FeatureMappingPtr readFeatureMapping(char *filename)
+{
+	FeatureMappingPtr featureMapping(new FeatureMapping);
+
+	QFile mappingFile(filename);
+	if (!mappingFile.open(QFile::ReadOnly))
+		throw runtime_error(string("Could not open ") + filename +
+			"for reading!");
+
+	QTextStream mappingStream(&mappingFile);
+
+	while(!mappingStream.atEnd())
+	{
+		QString mappingLine(mappingStream.readLine());
+		QRegExp mappingRe;
+		mappingRe.setPattern("^([0-9]+)\\|(.*)$");
+		mappingRe.indexIn(mappingLine);
+		(*featureMapping)[mappingRe.cap(1).toUInt()] =
+			mappingRe.cap(2);
+	}
+
+	return featureMapping;
+}
+
+DataSetPtr readSelectedFeatures(char *filename, FeatureMappingPtr featureMapping)
 {
 	SelectedFeatures selectedFeatures;
 	OverlappingFeatures overlappingFeatures;
@@ -27,8 +54,9 @@ DataSetPtr readSelectedFeatures(char *filename)
 		QString featureLine(featureStream.readLine());		
 		QStringList lineParts = featureLine.split("\t");
 		size_t featureNr = lineParts[0].toULong();
+		QString featureName = (*featureMapping)[featureNr];
 
-		SelectedFeature feature(featureNr, lineParts[1].toDouble(),
+		SelectedFeature feature(featureName, lineParts[1].toDouble(),
 			lineParts[2].toDouble());
 		selectedFeatures.push_back(feature);
 
@@ -40,14 +68,13 @@ DataSetPtr readSelectedFeatures(char *filename)
 			iter != overlapParts.end(); ++iter)
 		{
 			QStringList overlap = iter->split('#');
-			//qDebug(overlap[0]);
-			//qDebug(overlap[1]));
-			OverlappingFeature overlappingFeature(overlap[1].toULong(),
+			OverlappingFeature overlappingFeature(
+				(*featureMapping)[overlap[1].toUInt()],
 				overlap[0].toDouble());
 			overlaps.push_back(overlappingFeature);
 		}
 
-		overlappingFeatures[featureNr] = overlaps;
+		overlappingFeatures[featureName] = overlaps;
 	}
 
 	return QSharedPointer<DataSet>(new DataSet(selectedFeatures, overlappingFeatures));
@@ -67,7 +94,9 @@ int main(int argc, char *argv[])
 
 	QApplication app(argc, argv);
 
-	DataSetPtr features(readSelectedFeatures(argv[2]));
+	FeatureMappingPtr mapping = readFeatureMapping(argv[1]);
+	DataSetPtr features(readSelectedFeatures(argv[2], mapping));
+	mapping.clear();
 
 	overlapviewer::OverlapMainWindow mainWindow(features);
 	mainWindow.show();

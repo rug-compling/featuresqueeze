@@ -10,7 +10,7 @@ OverlapMainWindow::OverlapMainWindow(DataSetPtr selectedFeatures)
 	updateFeatures();
 }
 
-void OverlapMainWindow::showFeature(size_t feature)
+void OverlapMainWindow::showFeature(QString const &feature)
 {
 	QVector<OverlappingFeature> &overlappingFs =
 		d_dataset->overlappingFeatures[feature];
@@ -20,7 +20,7 @@ void OverlapMainWindow::showFeature(size_t feature)
 		iter != overlappingFs.end(); ++iter)
 	{
 		QStringList colTexts;
-		colTexts.push_back(QString::number(iter->feature));
+		colTexts.push_back(iter->feature);
 		colTexts.push_back(QString::number(iter->delta));
 		items.push_back(new QTreeWidgetItem(colTexts));
 	}
@@ -34,7 +34,7 @@ void OverlapMainWindow::updateFeature(QTreeWidgetItem *item, QTreeWidgetItem *)
 	if (item == 0)
 		return;
 
-	size_t selectedFeature = item->text(0).toUInt();
+	QString selectedFeature = item->text(0);
 	showFeature(selectedFeature);
 	qDebug(item->text(0).toLatin1().constData());
 }
@@ -47,7 +47,7 @@ void OverlapMainWindow::updateFeatures()
 		iter != d_dataset->selectedFeatures.end(); ++iter)
 	{
 		QStringList colTexts;
-		colTexts.push_back(QString::number(iter->feature));
+		colTexts.push_back(iter->feature);
 		colTexts.push_back(QString::number(iter->gain));
 		colTexts.push_back(QString::number(iter->alpha));
 

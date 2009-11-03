@@ -2,6 +2,7 @@
 #define OVERLAP_MAINWINDOW_HH
 
 #include <QMainWindow>
+#include <QString>
 #include <QTreeWidgetItem>
 #include <QWidget>
 
@@ -19,7 +20,7 @@ public:
 private slots:
 	void updateFeature(QTreeWidgetItem *item, QTreeWidgetItem *);
 private:
-	void showFeature(size_t feature);
+	void showFeature(QString const &feature);
 	void updateFeatures();
 
 	Ui::OverlapMainWindow d_overlapMainWindow;

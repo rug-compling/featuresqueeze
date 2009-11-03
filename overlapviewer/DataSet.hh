@@ -7,25 +7,25 @@
 
 struct SelectedFeature
 {
-	SelectedFeature(size_t newFeature, double newAlpha, double newGain) :
+	SelectedFeature(QString const &newFeature, double newAlpha, double newGain) :
 		feature(newFeature), alpha(newAlpha), gain(newGain) {}
 	SelectedFeature() { SelectedFeature(0, 0.0, 0.0); }
-	size_t feature;
+	QString feature;
 	double alpha;
 	double gain;
 };
 
 struct OverlappingFeature
 {
-	OverlappingFeature(size_t newFeature, double newDelta) :
+	OverlappingFeature(QString const &newFeature, double newDelta) :
 			feature(newFeature), delta(newDelta) {}
 	OverlappingFeature() : feature(0), delta(0.0) {}
-	size_t feature;
+	QString feature;
 	double delta;
 };
 
 typedef QVector<SelectedFeature> SelectedFeatures;
-typedef QHash<size_t, QVector<OverlappingFeature> > OverlappingFeatures;
+typedef QHash<QString, QVector<OverlappingFeature> > OverlappingFeatures;
 
 struct DataSet {
 	DataSet(SelectedFeatures newSelected, OverlappingFeatures newOverlapping) :
@@ -36,5 +36,8 @@ struct DataSet {
 };
 
 typedef QSharedPointer<DataSet> DataSetPtr;
+
+typedef QHash<size_t, QString> FeatureMapping;
+typedef QSharedPointer<FeatureMapping> FeatureMappingPtr;
 
 #endif // DATASET_HH
