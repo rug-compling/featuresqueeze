@@ -2,6 +2,7 @@
 #define OVERLAP_MAINWINDOW_HH
 
 #include <QMainWindow>
+#include <QTreeWidgetItem>
 #include <QWidget>
 
 #include "ui_OverlapMainWindow.h"
@@ -14,12 +15,15 @@ class OverlapMainWindow : public QMainWindow
 {
 	Q_OBJECT
 public:
-	OverlapMainWindow(SelectedFeaturesPtr selectedFeatures);
+	OverlapMainWindow(DataSetPtr selectedFeatures);
+private slots:
+	void updateFeature(QTreeWidgetItem *item, QTreeWidgetItem *);
 private:
+	void showFeature(size_t feature);
 	void updateFeatures();
 
 	Ui::OverlapMainWindow d_overlapMainWindow;
-	SelectedFeaturesPtr d_selectedFeatures;
+	DataSetPtr d_dataset;
 };
 
 }
