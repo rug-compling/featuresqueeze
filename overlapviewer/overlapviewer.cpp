@@ -1,3 +1,4 @@
+#include <cmath>
 #include <stdexcept>
 #include <string>
 
@@ -64,17 +65,28 @@ DataSetPtr readSelectedFeatures(char *filename, FeatureMappingPtr featureMapping
 		QStringList overlapParts = overlapLine.split("\t", QString::SkipEmptyParts);
 
 		QVector<OverlappingFeature> overlaps;
+		double normOverlapSum = 0.0;
+		double normActivationSum = 0.0;
 		for (QStringList::const_iterator iter = overlapParts.begin();
 			iter != overlapParts.end(); ++iter)
 		{
 			QStringList overlap = iter->split('#');
+
+			double normOverlap = overlap[0].toDouble();
+			if (normOverlap > 0.0)
+				normOverlapSum += normOverlap;
+			else if (normOverlap < 0.0)
+				normActivationSum += fabs(normOverlap);
+
 			OverlappingFeature overlappingFeature(
 				(*featureMapping)[overlap[1].toUInt()],
-				overlap[0].toDouble());
+				normOverlap);
 			overlaps.push_back(overlappingFeature);
 		}
 
-		overlappingFeatures[featureName] = overlaps;
+
+		overlappingFeatures[featureName] = Overlap(normOverlapSum, normActivationSum,
+			overlaps);
 	}
 
 	return QSharedPointer<DataSet>(new DataSet(selectedFeatures, overlappingFeatures));

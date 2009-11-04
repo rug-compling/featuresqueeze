@@ -12,8 +12,14 @@ OverlapMainWindow::OverlapMainWindow(DataSetPtr selectedFeatures)
 
 void OverlapMainWindow::showFeature(QString const &feature)
 {
+	d_overlapMainWindow.nameQLabel->setText(feature);
+	d_overlapMainWindow.overlapQLabel->setText(
+		QString::number(d_dataset->overlappingFeatures[feature].overlap));
+	d_overlapMainWindow.activationQLabel->setText(
+			QString::number(d_dataset->overlappingFeatures[feature].activation));
+
 	QVector<OverlappingFeature> &overlappingFs =
-		d_dataset->overlappingFeatures[feature];
+		d_dataset->overlappingFeatures[feature].features;
 
 	QList<QTreeWidgetItem *> items;
 	for (QVector<OverlappingFeature>::const_iterator iter = overlappingFs.begin();

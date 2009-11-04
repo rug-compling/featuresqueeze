@@ -7,7 +7,7 @@
 
 struct SelectedFeature
 {
-	SelectedFeature(QString const &newFeature, double newAlpha, double newGain) :
+	SelectedFeature(QString const &newFeature, double newAlpha, double newGain):
 		feature(newFeature), alpha(newAlpha), gain(newGain) {}
 	SelectedFeature() { SelectedFeature(0, 0.0, 0.0); }
 	QString feature;
@@ -24,8 +24,20 @@ struct OverlappingFeature
 	double delta;
 };
 
+struct Overlap
+{
+	Overlap(double newOverlap, double newActivation,
+		QVector<OverlappingFeature> const &newFeatures)
+		: overlap(newOverlap), activation(newActivation),
+		features(newFeatures) {}
+	Overlap() : overlap(0.0), activation(0.0) {};
+	double overlap;
+	double activation;
+	QVector<OverlappingFeature> features;
+};
+
 typedef QVector<SelectedFeature> SelectedFeatures;
-typedef QHash<QString, QVector<OverlappingFeature> > OverlappingFeatures;
+typedef QHash<QString, Overlap> OverlappingFeatures;
 
 struct DataSet {
 	DataSet(SelectedFeatures newSelected, OverlappingFeatures newOverlapping) :
