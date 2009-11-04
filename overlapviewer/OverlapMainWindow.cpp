@@ -42,7 +42,6 @@ void OverlapMainWindow::updateFeature(QTreeWidgetItem *item, QTreeWidgetItem *)
 
 	QString selectedFeature = item->text(0);
 	showFeature(selectedFeature);
-	qDebug(item->text(0).toLatin1().constData());
 }
 
 void OverlapMainWindow::updateFeatures()
