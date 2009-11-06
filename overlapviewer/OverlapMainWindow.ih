@@ -1,4 +1,6 @@
 #include <QList>
+#include <QRegExp>
+#include <QSharedPointer>
 #include <QStringList>
 #include <QTreeWidgetItem>
 #include <QVector>
