@@ -110,6 +110,64 @@ unordered_map<size_t, double> r_f(FeatureSet const &features,
 	return r;
 }
 
+double r_f(size_t feature, unordered_map<size_t, double> const &expFeatureValues,
+	unordered_map<size_t, double> const &expModelFeatureValues)
+{
+	auto expIter = expFeatureValues.find(feature);
+	return expIter->second <= expModelFeatureValues.find(expIter->first)->second ?
+		1 : -1;
+}
+
+void updateGradient(DataSet const &dataSet,
+	size_t feature,
+	Sums const &sums,
+	Zs const &zs,
+	double alpha,
+	double *gp,
+	double *gpp)
+{
+	for (auto ctxIter = dataSet.contexts().begin(), ctxSumIter = sums.begin(), zIter = zs.begin();
+	ctxIter != dataSet.contexts().end(); ++ctxIter, ++ctxSumIter, ++zIter)
+	{
+		auto newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
+		
+		vector<double> newSums(ctxSumIter->size(), 0);
+		auto p_fx = 0.0;
+		for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
+			newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
+			++evtIter, ++sumIter, ++newSumIter)
+		{
+			auto fVal = 0.0;
+			auto iter = evtIter->features().find(feature);
+			if (iter != evtIter->features().end())
+				fVal = iter->second.value();
+			
+			auto newSum = *sumIter * exp(alpha * fVal);
+			*newSumIter = newSum;
+			
+			p_fx += p_yx(newSum, newZ) * fVal;
+		}
+		
+		auto gppSum = 0.0;
+		for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
+			newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
+			++evtIter, ++sumIter, ++newSumIter)
+		{
+			auto fVal = 0.0;
+			auto iter = evtIter->features().find(feature);
+			if (iter != evtIter->features().end())
+				fVal = iter->second.value();
+			
+			auto newSum = *newSumIter;
+			
+			gppSum += p_yx(newSum, newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
+		}
+		
+		*gp = *gp - ctxIter->prob() * p_fx;
+		*gpp = *gpp - ctxIter->prob() * gppSum;
+	}
+}
+
 void updateGradients(DataSet const &dataSet,
 	FeatureSet const &unconvergedFeatures,
 	vector<FeatureSet> const &activeFeatures,
@@ -168,6 +226,21 @@ void updateGradients(DataSet const &dataSet,
 			(*gpp)[*fsIter] = (*gpp)[*fsIter] - ctxIter->prob() * gppSum;
 		}
 	}
+}
+
+// Calculate weight of a single feature for the current model, given G', G'' and R(f).
+// Returns true if the feature has converged.
+bool updateAlpha(size_t feature, double rF, double gp, double gpp, double *alpha,
+	double alphaThreshold)
+{
+	auto newAlpha = *alpha + rF * log(1 - rF * (gp / gpp));
+	auto delta = fabs(*alpha - newAlpha);
+	*alpha = newAlpha;
+	
+	if (delta < alphaThreshold || isnan(delta))
+		return true;
+	else
+		return false;
 }
 
 // Calculate feature weights for the current model, given G', G'' and R(f).
@@ -241,6 +314,28 @@ OrderedGains calcGains(DataSet const &dataSet,
 		));
 	
 	return gains;
+}
+
+// Calculate the gain of adding a feature to the model.
+double calcGain(DataSet const &dataSet,
+	size_t feature,
+	unordered_map<size_t, double> const &expFeatureValues,
+	double alpha,
+	vector<vector<double>> const &sums,
+	vector<double> const &zs)
+{
+	double gainSum = 0.0;
+	
+	for (auto ctxIter = dataSet.contexts().begin(), ctxSumIter = sums.begin(),
+		zIter = zs.begin(); ctxIter != dataSet.contexts().end();
+		++ctxIter, ++ctxSumIter, ++zIter)
+	{
+		auto newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
+		auto lg = ctxIter->prob() * log(newZ / *zIter);
+		gainSum -= lg;
+	}
+	
+	return gainSum + alpha * expFeatureValues.find(feature)->second;
 }
 
 // Hmpf...
@@ -426,31 +521,22 @@ void fastSelectionStage(DataSet const &dataSet,
 
 	while (true)
 	{
-		FeatureSet recalcFeatures;
-		recalcFeatures.insert(gains->begin()->first);
-		auto ctxActiveFs = contextActiveFeatures(dataSet, recalcFeatures, true, *sums, *zs);
-		auto unconvergedFs = activeFeatures(ctxActiveFs);
+		auto feature = gains->begin()->first;
+		double a = 0.0;
+		double r = r_f(feature, expVals, expModelVals);
 
-		auto r = r_f(unconvergedFs, expVals, expModelVals);
-	
-		auto a = a_f(unconvergedFs);
-
-		while (unconvergedFs.size() != 0)
+		bool converged = false;
+		while (!converged)
 		{
-			auto gp = expVals;
-			auto gpp = a_f(unconvergedFs);
-	
-			updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
-			unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
-		}
+			auto gp = expVals.find(feature)->second;
+			double gpp = 0.0;
+			
+			updateGradient(dataSet, feature, *sums, *zs, a, &gp, &gpp);
+			converged = updateAlpha(feature, r, gp, gpp, &a, alphaThreshold);
+		}	
 
-		auto newGains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);	
+		auto gain = calcGain(dataSet, feature, expVals, a, *sums, *zs);	
 		
-		size_t f = newGains.begin()->first;
-		auto gain = newGains.begin()->second;
-
-		auto alpha = a[f];
-
 		auto gainIter = gains->begin();		
 		++gainIter;
 		
@@ -462,9 +548,9 @@ void fastSelectionStage(DataSet const &dataSet,
 			// The current feature has a higher recalculated gain than the
 			// second-highest feature. Select the current feature, and remove
 			// it for further analyses.
-			adjustModel(dataSet, f, alpha, sums, zs);
-			selectedFeatures->insert(f);
-			selectedFeatureAlphas->push_back(makeTriple(f, alpha, gain));
+			adjustModel(dataSet, feature, a, sums, zs);
+			selectedFeatures->insert(feature);
+			selectedFeatureAlphas->push_back(makeTriple(feature, a, gain));
 			gains->erase(gains->begin(), gainIter);
 			
 			break; // Done for this stage.
@@ -472,7 +558,7 @@ void fastSelectionStage(DataSet const &dataSet,
 		else
 		{
 			gains->erase(gains->begin(), gainIter);
-			gains->insert(make_pair(f, gain));
+			gains->insert(make_pair(feature, gain));
 		}
  	}
 }
