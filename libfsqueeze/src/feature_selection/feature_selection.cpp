@@ -149,9 +149,9 @@ void updateGradient(DataSet const &dataSet,
 		}
 		
 		auto gppSum = 0.0;
-		for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
-			newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
-			++evtIter, ++sumIter, ++newSumIter)
+		for (auto evtIter = ctxIter->events().begin(), newSumIter = newSums.begin();
+			evtIter != ctxIter->events().end();
+			++evtIter, ++newSumIter)
 		{
 			auto fVal = 0.0;
 			auto iter = evtIter->features().find(feature);
@@ -230,7 +230,7 @@ void updateGradients(DataSet const &dataSet,
 
 // Calculate weight of a single feature for the current model, given G', G'' and R(f).
 // Returns true if the feature has converged.
-bool updateAlpha(size_t feature, double rF, double gp, double gpp, double *alpha,
+bool updateAlpha(double rF, double gp, double gpp, double *alpha,
 	double alphaThreshold)
 {
 	auto newAlpha = *alpha + rF * log(1 - rF * (gp / gpp));
@@ -532,7 +532,7 @@ void fastSelectionStage(DataSet const &dataSet,
 			double gpp = 0.0;
 			
 			updateGradient(dataSet, feature, *sums, *zs, a, &gp, &gpp);
-			converged = updateAlpha(feature, r, gp, gpp, &a, alphaThreshold);
+			converged = updateAlpha(r, gp, gpp, &a, alphaThreshold);
 		}	
 
 		auto gain = calcGain(dataSet, feature, expVals, a, *sums, *zs);	
