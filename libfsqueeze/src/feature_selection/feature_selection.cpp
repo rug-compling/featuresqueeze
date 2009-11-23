@@ -19,7 +19,7 @@
 
 #include "feature_selection.ih"
 
-double zf(vector<Event> const &events, vector<double> const &ctxSums, double z,
+double zf(EventVector const &events, Sum const &ctxSums, double z,
 	size_t feature, double alpha);
 
 vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
@@ -208,7 +208,7 @@ void updateGradients(DataSet const &dataSet,
 			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, *fsIter,
 				alphas.find(*fsIter)->second);
 			
-			vector<double> newSums(ctxSumIter->size(), 0);
+			Sum newSums(ctxSumIter->size(), 0);
 			double p_fx = 0.0;
 			EventVector::const_iterator evtIter = ctxIter->events().begin();
 			Sum::const_iterator sumIter = ctxSumIter->begin();
@@ -310,8 +310,8 @@ OrderedGains calcGains(DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
 	ExpectedValues const &expFeatureValues,
 	FeatureWeights const &alphas,
-	vector<vector<double> > const &sums,
-	vector<double> const &zs)
+	Sums const &sums,
+	Zs const &zs)
 {
 	GainMap gainSum;
 	
@@ -352,8 +352,8 @@ double calcGain(DataSet const &dataSet,
 	size_t feature,
 	ExpectedValues const &expFeatureValues,
 	double alpha,
-	vector<vector<double> > const &sums,
-	vector<double> const &zs)
+	Sums const &sums,
+	Zs const &zs)
 {
 	double gainSum = 0.0;
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
@@ -450,8 +450,8 @@ OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
 OrderedGains fullSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
 	ExpectedValues const &expVals,
-	vector<double> *zs,
-	vector<vector<double> > *sums,
+	Sums *sums,
+	Zs *zs,
 	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas)
 {
@@ -504,10 +504,10 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	{
 		OrderedGains gains;
 		if (detectOverlap)
-			gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+			gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
 				&selectedFeatures, &selectedFeatureAlphas);
 		else
-			fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+			fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
 				&selectedFeatures, &selectedFeatureAlphas);
 		
 		if (selectedFeatureAlphas.size() == 0)
@@ -547,8 +547,8 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 void fastSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
 	ExpectedValues const &expVals,
-	vector<double> *zs,
-	vector<vector<double> > *sums,
+	Sums *sums,
+	Zs *zs,
 	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas,
 	OrderedGains *gains)
@@ -611,7 +611,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	ExpectedValues expVals = expFeatureValues(dataSet);
 
 	// Start with a full selection stage to calculate the stage 2 model and gains.
-	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
 		&selectedFeatures, &selectedFeatureAlphas);
 	OrderedGains::const_iterator gainIter = gains.begin();
 	++gainIter;
@@ -623,7 +623,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	
 	while(selectedFeatures.size() < nFeatures)	
 	{
-		fastSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+		fastSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
 			&selectedFeatures, &selectedFeatureAlphas, &gains);
 
 		if (selectedFeatureAlphas.back().third < gainThreshold)
@@ -641,7 +641,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 }
 
 
-double zf(EventVector const &events, vector<double> const &ctxSums, double z,
+double zf(EventVector const &events, Sum const &ctxSums, double z,
 	size_t feature, double alpha)
 {
 	double newZ = z;
