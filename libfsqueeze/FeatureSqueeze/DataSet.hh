@@ -39,7 +39,7 @@ namespace fsqueeze {
 
 typedef std::vector<Context> ContextVector;
 typedef std::tr1::unordered_map<size_t,
-	std::vector<std::pair<Event const *, Feature const *>>> DsFeatureMap;
+	std::vector<std::pair<Event const *, Feature const *> > > DsFeatureMap;
 
 /**
  * This class represents datasets to be used for feature selection. Datasets

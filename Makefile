@@ -1,5 +1,5 @@
-CXXFLAGS=-std=c++0x -O3 -Wall -pedantic -Ilibfsqueeze
-CXX=g++-4.4
+CXXFLAGS=-O3 -Wall -Wextra -pedantic -Ilibfsqueeze
+CXX=g++
 
 LIBFSQUEEZE_SOURCES=\
 	libfsqueeze/src/DataSet/DataSet.cpp \

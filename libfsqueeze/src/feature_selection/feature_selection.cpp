@@ -28,8 +28,10 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 {
 	vector<FeatureSet> ctxActive;
 	
-	for (auto ctxIter = dataSet.contexts().begin(), ctxSumIter = sums.begin(), zIter = zs.begin();
-	ctxIter != dataSet.contexts().end(); ++ctxIter, ++ctxSumIter, ++zIter)
+	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+	Sums::const_iterator ctxSumIter = sums.begin();
+	Zs::const_iterator zIter = zs.begin();
+	while (ctxIter != dataSet.contexts().end())
 	{
 		FeatureSet active;
 
@@ -40,27 +42,28 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 			continue;
 		}
 
-		for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin();
-			evtIter != ctxIter->events().end(); ++evtIter, ++sumIter)
+		EventVector::const_iterator evtIter = ctxIter->events().begin();
+		Sum::const_iterator sumIter = ctxSumIter->begin();
+		while (evtIter != ctxIter->events().end())
 		{
 			// This event can not have active features if its probability is zero.
 			if (p_yx(*sumIter, *zIter) == 0.0)
 				continue;
 
-			auto &features = evtIter->features();
+			FeatureMap const &features = evtIter->features();
 
 			// Iterate over the provided feature set if it is small...
 			if (includeSelected && selectedFeatures.size() < evtIter->features().size())
-				for (auto fIter = selectedFeatures.begin(); fIter != selectedFeatures.end();
-						++fIter)
+				for (FeatureSet::const_iterator fIter = selectedFeatures.begin();
+					fIter != selectedFeatures.end(); ++fIter)
 				{
-					auto f = features.find(*fIter);
+					FeatureMap::const_iterator f = features.find(*fIter);
 					if (f != features.end() && f->second.value() != 0.0)
 						active.insert(*fIter);
 				}
 			// ...otherwise iterate over all features of the current event.
 			else
-				for (auto fIter = evtIter->features().begin();
+				for (FeatureMap::const_iterator fIter = evtIter->features().begin();
 						fIter != evtIter->features().end();
 						++fIter)
 					if (includeSelected)
@@ -73,9 +76,13 @@ vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 						if (selectedFeatures.find(fIter->first) == selectedFeatures.end() &&
 								fIter->second.value() != 0.0)
 							active.insert(fIter->first);
+			
+			++evtIter; ++sumIter;
 		}
 		
 		ctxActive.push_back(active);
+		
+		++ctxIter; ++ctxSumIter; ++zIter;
 	}
 	
 	return ctxActive;
@@ -86,8 +93,8 @@ FeatureSet activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 {
 	FeatureSet active;
 	
-	for (auto ctxIter = contextActiveFeatures.begin(); ctxIter != contextActiveFeatures.end();
-			++ctxIter)
+	for (vector<FeatureSet>::const_iterator ctxIter = contextActiveFeatures.begin();
+			ctxIter != contextActiveFeatures.end(); ++ctxIter)
 		active.insert(ctxIter->begin(), ctxIter->end());
 	
 	return active;
@@ -100,9 +107,9 @@ unordered_map<size_t, double> r_f(FeatureSet const &features,
 {
 	unordered_map<size_t, double> r;
 	
-	for (auto iter = features.begin(); iter != features.end(); ++iter)
+	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end(); ++iter)
 	{
-		auto expIter = expFeatureValues.find(*iter);
+		unordered_map<size_t, double>::const_iterator expIter = expFeatureValues.find(*iter);
 		r[*iter] = expIter->second <=
 			expModelFeatureValues.find(expIter->first)->second ? 1 : -1;
 	}
@@ -113,7 +120,7 @@ unordered_map<size_t, double> r_f(FeatureSet const &features,
 double r_f(size_t feature, unordered_map<size_t, double> const &expFeatureValues,
 	unordered_map<size_t, double> const &expModelFeatureValues)
 {
-	auto expIter = expFeatureValues.find(feature);
+	unordered_map<size_t, double>::const_iterator expIter = expFeatureValues.find(feature);
 	return expIter->second <= expModelFeatureValues.find(expIter->first)->second ?
 		1 : -1;
 }
@@ -126,45 +133,54 @@ void updateGradient(DataSet const &dataSet,
 	double *gp,
 	double *gpp)
 {
-	for (auto ctxIter = dataSet.contexts().begin(), ctxSumIter = sums.begin(), zIter = zs.begin();
-	ctxIter != dataSet.contexts().end(); ++ctxIter, ++ctxSumIter, ++zIter)
+	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+	Sums::const_iterator ctxSumIter = sums.begin();
+	Zs::const_iterator zIter = zs.begin();
+	while(ctxIter != dataSet.contexts().end())
 	{
-		auto newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
+		double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
 		
-		vector<double> newSums(ctxSumIter->size(), 0);
-		auto p_fx = 0.0;
-		for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
-			newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
-			++evtIter, ++sumIter, ++newSumIter)
+		Sum newSums(ctxSumIter->size(), 0);
+		double p_fx = 0.0;
+		EventVector::const_iterator evtIter = ctxIter->events().begin();
+		Sum::const_iterator sumIter = ctxSumIter->begin();
+		Sum::iterator newSumIter = newSums.begin();
+		while(evtIter != ctxIter->events().end())
 		{
-			auto fVal = 0.0;
-			auto iter = evtIter->features().find(feature);
+			double fVal = 0.0;
+			FeatureMap::const_iterator iter = evtIter->features().find(feature);
 			if (iter != evtIter->features().end())
 				fVal = iter->second.value();
 			
-			auto newSum = *sumIter * exp(alpha * fVal);
+			double newSum = *sumIter * exp(alpha * fVal);
 			*newSumIter = newSum;
 			
 			p_fx += p_yx(newSum, newZ) * fVal;
+			
+			++evtIter; ++sumIter; ++newSumIter;
 		}
 		
-		auto gppSum = 0.0;
-		for (auto evtIter = ctxIter->events().begin(), newSumIter = newSums.begin();
-			evtIter != ctxIter->events().end();
-			++evtIter, ++newSumIter)
+		double gppSum = 0.0;
+		evtIter = ctxIter->events().begin();
+		newSumIter = newSums.begin();
+		while (evtIter != ctxIter->events().end())
 		{
-			auto fVal = 0.0;
-			auto iter = evtIter->features().find(feature);
+			double fVal = 0.0;
+			FeatureMap::const_iterator iter = evtIter->features().find(feature);
 			if (iter != evtIter->features().end())
 				fVal = iter->second.value();
 			
-			auto newSum = *newSumIter;
+			double newSum = *newSumIter;
 			
 			gppSum += p_yx(newSum, newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
+			
+			++evtIter; ++newSumIter;
 		}
 		
 		*gp = *gp - ctxIter->prob() * p_fx;
 		*gpp = *gpp - ctxIter->prob() * gppSum;
+		
+		++ctxIter; ++ctxSumIter; ++zIter;
 	}
 }
 
@@ -177,54 +193,64 @@ void updateGradients(DataSet const &dataSet,
 	unordered_map<size_t, double> *gp,
 	unordered_map<size_t, double> *gpp)
 {
-	for (auto ctxIter = dataSet.contexts().begin(), ctxSumIter = sums.begin(), zIter = zs.begin(),
-	activeFsIter = activeFeatures.begin(); ctxIter != dataSet.contexts().end();
-	++ctxIter, ++ctxSumIter, ++zIter, ++activeFsIter)
+	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+	Sums::const_iterator ctxSumIter = sums.begin();
+	Zs::const_iterator zIter = zs.begin();
+	vector<FeatureSet>::const_iterator activeFsIter = activeFeatures.begin();
+	while (ctxIter != dataSet.contexts().end())
 	{
-		for (auto fsIter = activeFsIter->begin(); fsIter != activeFsIter->end();
+		for (FeatureSet::const_iterator fsIter = activeFsIter->begin(); fsIter != activeFsIter->end();
 			++fsIter)
 		{
 			if (unconvergedFeatures.find(*fsIter) == unconvergedFeatures.end())
 				continue;
 
-			auto newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, *fsIter,
+			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, *fsIter,
 				alphas.find(*fsIter)->second);
 			
 			vector<double> newSums(ctxSumIter->size(), 0);
-			auto p_fx = 0.0;
-			for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
-				newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
-				++evtIter, ++sumIter, ++newSumIter)
+			double p_fx = 0.0;
+			EventVector::const_iterator evtIter = ctxIter->events().begin();
+			Sum::const_iterator sumIter = ctxSumIter->begin();
+			Sum::iterator newSumIter = newSums.begin();
+			while (evtIter != ctxIter->events().end())
 			{
-				auto fVal = 0.0;
-				auto iter = evtIter->features().find(*fsIter);
+				double fVal = 0.0;
+				FeatureMap::const_iterator iter = evtIter->features().find(*fsIter);
 				if (iter != evtIter->features().end())
 					fVal = iter->second.value();
 				
-				auto newSum = *sumIter * exp(alphas.find(*fsIter)->second * fVal);
+				double newSum = *sumIter * exp(alphas.find(*fsIter)->second * fVal);
 				*newSumIter = newSum;
 				
 				p_fx += p_yx(newSum, newZ) * fVal;
+				
+				++evtIter; ++sumIter; ++newSumIter;
 			}
 			
-			auto gppSum = 0.0;
-			for (auto evtIter = ctxIter->events().begin(), sumIter = ctxSumIter->begin(),
-				newSumIter = newSums.begin(); evtIter != ctxIter->events().end();
-				++evtIter, ++sumIter, ++newSumIter)
+			double gppSum = 0.0;
+			evtIter = ctxIter->events().begin();
+			sumIter = ctxSumIter->begin();
+			newSumIter = newSums.begin();
+			while (evtIter != ctxIter->events().end())
 			{
-				auto fVal = 0.0;
-				auto iter = evtIter->features().find(*fsIter);
+				double fVal = 0.0;
+				FeatureMap::const_iterator iter = evtIter->features().find(*fsIter);
 				if (iter != evtIter->features().end())
 					fVal = iter->second.value();
 				
-				auto newSum = *newSumIter;
+				double newSum = *newSumIter;
 				
 				gppSum += p_yx(newSum, newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
+				
+				++evtIter; ++sumIter; ++newSumIter;
 			}
 			
 			(*gp)[*fsIter] = (*gp)[*fsIter] - ctxIter->prob() * p_fx;
 			(*gpp)[*fsIter] = (*gpp)[*fsIter] - ctxIter->prob() * gppSum;
 		}
+		
+		++ctxIter; ++ctxSumIter; ++zIter; ++activeFsIter;
 	}
 }
 
@@ -233,8 +259,8 @@ void updateGradients(DataSet const &dataSet,
 bool updateAlpha(double rF, double gp, double gpp, double *alpha,
 	double alphaThreshold)
 {
-	auto newAlpha = *alpha + rF * log(1 - rF * (gp / gpp));
-	auto delta = fabs(*alpha - newAlpha);
+	double newAlpha = *alpha + rF * log(1 - rF * (gp / gpp));
+	double delta = fabs(*alpha - newAlpha);
 	*alpha = newAlpha;
 	
 	if (delta < alphaThreshold || isnan(delta))
@@ -252,13 +278,13 @@ FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 	double alphaThreshold)
 {
 	FeatureSet newUnconvergedFs = unconvergedFeatures;
-	for (auto fIter = unconvergedFeatures.begin(); fIter != unconvergedFeatures.end();
-		++fIter)
+	for (FeatureSet::const_iterator fIter = unconvergedFeatures.begin();
+		fIter != unconvergedFeatures.end(); ++fIter)
 	{
 		size_t f = *fIter;
 		double rF = r.find(f)->second;
-		auto newAlpha = (*alphas)[f] + rF * log(1 - rF * (gp.find(f)->second / gpp.find(f)->second));
-		auto delta = fabs((*alphas)[f] - newAlpha);
+		double newAlpha = (*alphas)[f] + rF * log(1 - rF * (gp.find(f)->second / gpp.find(f)->second));
+		double delta = fabs((*alphas)[f] - newAlpha);
 		(*alphas)[f] = newAlpha;
 		if (delta < alphaThreshold || isnan(delta))
 			newUnconvergedFs.erase(f);
@@ -272,7 +298,7 @@ unordered_map<size_t, double> a_f(FeatureSet const &features)
 {
 	unordered_map<size_t, double> a;
 	
-	for (auto iter = features.begin(); iter != features.end();
+	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end();
 			++iter)
 		a[*iter] = 0.0;
 		
@@ -284,30 +310,35 @@ OrderedGains calcGains(DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
 	unordered_map<size_t, double> const &expFeatureValues,
 	unordered_map<size_t, double> const &alphas,
-	vector<vector<double>> const &sums,
+	vector<vector<double> > const &sums,
 	vector<double> const &zs)
 {
 	unordered_map<size_t, double> gainSum;
 	
-	for (auto ctxIter = dataSet.contexts().begin(), fsIter = contextActiveFeatures.begin(),
-		ctxSumIter = sums.begin(), zIter = zs.begin(); ctxIter != dataSet.contexts().end();
-		++ctxIter, ++fsIter, ++ctxSumIter, ++zIter)
+	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+	vector<FeatureSet>::const_iterator fsIter = contextActiveFeatures.begin();
+	Sums::const_iterator ctxSumIter = sums.begin();
+	Zs::const_iterator zIter = zs.begin();
+	while (ctxIter != dataSet.contexts().end())
 	{
-		for (auto alphaIter = alphas.begin(); alphaIter != alphas.end();
+		for (unordered_map<size_t, double>::const_iterator alphaIter =
+			alphas.begin(); alphaIter != alphas.end();
 			++alphaIter)
 		{
-			auto newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, alphaIter->first,
+			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, alphaIter->first,
 				alphaIter->second);
 			
-			auto lg = ctxIter->prob() * log(newZ / *zIter);
+			double lg = ctxIter->prob() * log(newZ / *zIter);
 			
 			gainSum[alphaIter->first] -= lg;
 		}
+		
+		++ctxIter; ++fsIter; ++ctxSumIter; ++zIter;
 	}
 	
 	OrderedGains gains;
-	for (auto alphaIter = alphas.begin(); alphaIter != alphas.end();
-			++alphaIter)
+	for (unordered_map<size_t, double>::const_iterator alphaIter = alphas.begin();
+			alphaIter != alphas.end(); ++alphaIter)
 		gains.insert(make_pair(alphaIter->first,
 			gainSum[alphaIter->first] + alphaIter->second *
 			expFeatureValues.find(alphaIter->first)->second
@@ -321,18 +352,20 @@ double calcGain(DataSet const &dataSet,
 	size_t feature,
 	unordered_map<size_t, double> const &expFeatureValues,
 	double alpha,
-	vector<vector<double>> const &sums,
+	vector<vector<double> > const &sums,
 	vector<double> const &zs)
 {
 	double gainSum = 0.0;
-	
-	for (auto ctxIter = dataSet.contexts().begin(), ctxSumIter = sums.begin(),
-		zIter = zs.begin(); ctxIter != dataSet.contexts().end();
-		++ctxIter, ++ctxSumIter, ++zIter)
+	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+	Sums::const_iterator ctxSumIter = sums.begin();
+	Zs::const_iterator zIter = zs.begin();
+	while(ctxIter != dataSet.contexts().end())
 	{
-		auto newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
-		auto lg = ctxIter->prob() * log(newZ / *zIter);
+		double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
+		double lg = ctxIter->prob() * log(newZ / *zIter);
 		gainSum -= lg;
+		
+		++ctxIter; ++ctxSumIter; ++zIter;
 	}
 	
 	return gainSum + alpha * expFeatureValues.find(feature)->second;
@@ -343,7 +376,7 @@ unordered_map<int, double> orderedGainsToMap(OrderedGains const &gains)
 {
 	unordered_map<int, double> gainMap;
 
-	for (auto iter = gains.begin(); iter != gains.end(); ++iter)
+	for (OrderedGains::const_iterator iter = gains.begin(); iter != gains.end(); ++iter)
 		gainMap[iter->first] = iter->second;
 	
 	return gainMap;
@@ -353,14 +386,14 @@ unordered_map<int, double> orderedGainsToMap(OrderedGains const &gains)
 unordered_map<int, double> gainDeltas(OrderedGains const &prevGains, OrderedGains const &gains,
 	double gainThreshold, bool normalize)
 {
-	auto gainMap = orderedGainsToMap(gains);
-	auto prevGainMap = orderedGainsToMap(prevGains);
+	GainMap gainMap = orderedGainsToMap(gains);
+	GainMap prevGainMap = orderedGainsToMap(prevGains);
 	
 	unordered_map<int, double> gainDeltas;
 	
-	for (auto iter = gainMap.begin(); iter != gainMap.end(); ++iter)
+	for (GainMap::const_iterator iter = gainMap.begin(); iter != gainMap.end(); ++iter)
 	{
-		auto prevIter = prevGainMap.find(iter->first);
+		GainMap::const_iterator prevIter = prevGainMap.find(iter->first);
 		if (prevIter != prevGainMap.end() && !isnan(iter->second) &&
 			!isnan(prevIter->second) && prevIter->second > gainThreshold)
 		{
@@ -386,22 +419,25 @@ OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
 {
 	OrderedGains overlappingFs;
 
-	auto deltas = gainDeltas(prevGains, gains, gainThreshold, normalizeDeltas);
+	unordered_map<int, double> deltas = gainDeltas(prevGains, gains, gainThreshold, normalizeDeltas);
 	
 	// Average
 	double sum = 0.0;
-	for (auto iter = deltas.begin(); iter != deltas.end(); ++iter)
+	for (unordered_map<int, double>::const_iterator iter = deltas.begin();
+			iter != deltas.end(); ++iter)
 		sum += iter->second;
 	double avg = sum / deltas.size();
 	
 	// Standard deviation
 	double sqDiffSum = 0.0;
-	for (auto iter = deltas.begin(); iter != deltas.end(); ++iter)
+	for (unordered_map<int, double>::const_iterator iter = deltas.begin();
+			iter != deltas.end(); ++iter)
 		sqDiffSum += pow(iter->second - avg, 2);
 	double sd = sqrt(sqDiffSum / deltas.size());
 	
 	double const SE99 = 2.68;
-	for (auto iter = deltas.begin(); iter != deltas.end(); ++iter)
+	for (unordered_map<int, double>::const_iterator iter = deltas.begin();
+		iter != deltas.end(); ++iter)
 	{
 		double zIndex = (iter->second - avg) / sd;
 		if (fabs(zIndex) > SE99)
@@ -415,33 +451,33 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
 	unordered_map<size_t, double> const &expVals,
 	vector<double> *zs,
-	vector<vector<double>> *sums,
+	vector<vector<double> > *sums,
 	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas)
 {
-	auto expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
+	unordered_map<size_t, double> expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
 
-	auto ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, false, *sums, *zs);
-	auto unconvergedFs = activeFeatures(ctxActiveFs);
+	vector<FeatureSet> ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, false, *sums, *zs);
+	FeatureSet unconvergedFs = activeFeatures(ctxActiveFs);
 
-	auto r = r_f(unconvergedFs, expVals, expModelVals);
+	unordered_map<size_t, double> r = r_f(unconvergedFs, expVals, expModelVals);
 	
-	auto a = a_f(unconvergedFs);
+	unordered_map<size_t, double> a = a_f(unconvergedFs);
 
 	while (unconvergedFs.size() != 0)
 	{
-		auto gp = expVals;
-		auto gpp = a_f(unconvergedFs);
+		unordered_map<size_t, double> gp = expVals;
+		unordered_map<size_t, double> gpp = a_f(unconvergedFs);
 	
 		updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
 	}
 
-	auto gains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);
+	OrderedGains gains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);
 
 	size_t maxF = gains.begin()->first;
-	auto maxGain = gains.begin()->second;
-	auto maxAlpha = a[maxF];
+	double maxGain = gains.begin()->second;
+	double maxAlpha = a[maxF];
 
 	adjustModel(dataSet, maxF, maxAlpha, sums, zs);
 		
@@ -458,10 +494,10 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
 	
-	auto zs = initialZs(dataSet);
-	auto sums = initialSums(dataSet);
+	Zs zs = initialZs(dataSet);
+	Sums sums = initialSums(dataSet);
 	
-	auto expVals = expFeatureValues(dataSet);
+	unordered_map<size_t, double> expVals = expFeatureValues(dataSet);
 	
 	OrderedGains prevGains;
 	while(selectedFeatures.size() < nFeatures)	
@@ -481,17 +517,17 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 		{
 			if (prevGains.size() != 0)
 			{
-				auto overlappingFs = findOverlappingFeatures(prevGains, gains,
+				OrderedGains overlappingFs = findOverlappingFeatures(prevGains, gains,
 					gainThreshold, true);
 				copy(overlappingFs.begin(), overlappingFs.end(),
-					ostream_iterator<pair<size_t, double>>(logger.message(), "\t"));
+					ostream_iterator<pair<size_t, double> >(logger.message(), "\t"));
 				logger.message() << "\n";
 			}
 
 			prevGains = gains;
 		}
 
-		auto selected = selectedFeatureAlphas.back();
+		Triple<size_t, double, double> selected = selectedFeatureAlphas.back();
 		
 		if (selected.third < gainThreshold)
 		{
@@ -512,32 +548,32 @@ void fastSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
 	unordered_map<size_t, double> const &expVals,
 	vector<double> *zs,
-	vector<vector<double>> *sums,
+	vector<vector<double> > *sums,
 	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas,
 	OrderedGains *gains)
 {
-	auto expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
+	unordered_map<size_t, double> expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
 
 	while (true)
 	{
-		auto feature = gains->begin()->first;
+		size_t feature = gains->begin()->first;
 		double a = 0.0;
 		double r = r_f(feature, expVals, expModelVals);
 
 		bool converged = false;
 		while (!converged)
 		{
-			auto gp = expVals.find(feature)->second;
+			double gp = expVals.find(feature)->second;
 			double gpp = 0.0;
 			
 			updateGradient(dataSet, feature, *sums, *zs, a, &gp, &gpp);
 			converged = updateAlpha(r, gp, gpp, &a, alphaThreshold);
 		}	
 
-		auto gain = calcGain(dataSet, feature, expVals, a, *sums, *zs);	
+		double gain = calcGain(dataSet, feature, expVals, a, *sums, *zs);	
 		
-		auto gainIter = gains->begin();		
+		OrderedGains::const_iterator gainIter = gains->begin();		
 		++gainIter;
 		
 		if (isnan(gain) && isnan(gainIter->second))
@@ -569,19 +605,19 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
 	
-	auto zs = initialZs(dataSet);
-	auto sums = initialSums(dataSet);
+	Zs zs = initialZs(dataSet);
+	Sums sums = initialSums(dataSet);
 	
-	auto expVals = expFeatureValues(dataSet);
+	unordered_map<size_t, double> expVals = expFeatureValues(dataSet);
 
 	// Start with a full selection stage to calculate the stage 2 model and gains.
-	auto gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
+	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,
 		&selectedFeatures, &selectedFeatureAlphas);
-	auto gainIter = gains.begin();
+	OrderedGains::const_iterator gainIter = gains.begin();
 	++gainIter;
 	gains.erase(gains.begin(), gainIter);
 	
-	auto selected = selectedFeatureAlphas.back();
+	Triple<size_t, double, double> selected = selectedFeatureAlphas.back();
 	logger.message() << selected.first << "\t" << selected.second <<
 		"\t" << selected.third << "\n";
 	
@@ -596,7 +632,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 			break;
 		}
 		
-		auto selected = selectedFeatureAlphas.back();
+		Triple<size_t, double, double> selected = selectedFeatureAlphas.back();
 		logger.message() << selected.first << "\t" << selected.second <<
 			"\t" << selected.third << "\n";
 	}
@@ -605,17 +641,20 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 }
 
 
-double zf(vector<Event> const &events, vector<double> const &ctxSums, double z,
+double zf(EventVector const &events, vector<double> const &ctxSums, double z,
 	size_t feature, double alpha)
 {
-	auto newZ = z;
+	double newZ = z;
 
-	for (auto evtIter = events.begin(), sumIter = ctxSums.begin();
-		evtIter != events.end(); ++evtIter, ++sumIter)
+	EventVector::const_iterator evtIter = events.begin();
+	Sum::const_iterator sumIter = ctxSums.begin();
+	while (evtIter != events.end())
 	{
-		auto iter = evtIter->features().find(feature);
+		FeatureMap::const_iterator iter = evtIter->features().find(feature);
 		if (iter != evtIter->features().end())
 			newZ = newZ - *sumIter + *sumIter * exp(alpha * iter->second.value());
+
+		++evtIter; ++sumIter;
 	}
 	
 	return newZ;

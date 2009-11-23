@@ -51,7 +51,7 @@ str);
  * Split a string on whitespace.
  * @str The string to be split.
  */
-inline std::vector<std::string> stringSplit(std::string str)
+inline std::vector<std::string> stringSplit(std::string const &str)
 {
 	std::istringstream iss(str);
 	std::vector<std::string> strParts;

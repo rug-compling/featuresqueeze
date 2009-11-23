@@ -23,7 +23,7 @@ ProgramOptions::ProgramOptions(int argc, char *argv[], char const *optString)
 
 std::string const &ProgramOptions::optionValue(char option) const
 {
-	auto iter = d_optionValues.find(option);
+	map<char,std::string>::const_iterator iter = d_optionValues.find(option);
 	if (iter == d_optionValues.end())
 		throw runtime_error("Tried to extract the value for an option without argument.");
 	return iter->second;

@@ -10,7 +10,8 @@
 namespace fsqueeze
 {
 
-typedef std::vector<std::vector<double>> Sums;
+typedef std::vector<std::vector<double> > Sums;
+typedef std::vector<double> Sum;
 typedef std::vector<double> Zs;
 
 struct makeSumVector
@@ -23,7 +24,7 @@ struct makeSumVector
  * we assume that the previous value of alpha was zero.
  */
 void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
-	std::vector<std::vector<double>> *sums, std::vector<double> *zs);
+	std::vector<std::vector<double> > *sums, std::vector<double> *zs);
 
 /**
  * Calculate the expected value of each feature in a data set.
@@ -46,7 +47,7 @@ std::vector<double> initialZs(DataSet const &ds);
  * Construct a vector of unnormalized event 'probabilities' representing a
  * uniform model.
  */
-std::vector<std::vector<double>> initialSums(DataSet const &ds);
+std::vector<std::vector<double> > initialSums(DataSet const &ds);
 
 /**
  * Calculate the probability p(y|x) based on sum and normalization z.
