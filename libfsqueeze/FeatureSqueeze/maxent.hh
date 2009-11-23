@@ -10,6 +10,7 @@
 namespace fsqueeze
 {
 
+typedef std::tr1::unordered_map<size_t, double> ExpectedValues;
 typedef std::vector<std::vector<double> > Sums;
 typedef std::vector<double> Sum;
 typedef std::vector<double> Zs;
@@ -29,13 +30,13 @@ void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
 /**
  * Calculate the expected value of each feature in a data set.
  */
-std::tr1::unordered_map<size_t, double> expFeatureValues(DataSet const &dataSet);
+ExpectedValues expFeatureValues(DataSet const &dataSet);
 
 /**
  * Calculate the expected value of each feature according to the model represented
  * by zs and sums.
  */
-std::tr1::unordered_map<size_t, double> expModelFeatureValues(DataSet const &dataSet,
+ExpectedValues expModelFeatureValues(DataSet const &dataSet,
 	Sums const &sums, Zs const &zs);
 
 /**

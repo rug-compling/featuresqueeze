@@ -102,14 +102,14 @@ FeatureSet activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 
 // R(f)
 unordered_map<size_t, double> r_f(FeatureSet const &features,
-	unordered_map<size_t, double> const &expFeatureValues,
-	unordered_map<size_t, double> const &expModelFeatureValues)
+	ExpectedValues const &expFeatureValues,
+	ExpectedValues const &expModelFeatureValues)
 {
 	unordered_map<size_t, double> r;
 	
 	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end(); ++iter)
 	{
-		unordered_map<size_t, double>::const_iterator expIter = expFeatureValues.find(*iter);
+		ExpectedValues::const_iterator expIter = expFeatureValues.find(*iter);
 		r[*iter] = expIter->second <=
 			expModelFeatureValues.find(expIter->first)->second ? 1 : -1;
 	}
@@ -117,10 +117,10 @@ unordered_map<size_t, double> r_f(FeatureSet const &features,
 	return r;
 }
 
-double r_f(size_t feature, unordered_map<size_t, double> const &expFeatureValues,
-	unordered_map<size_t, double> const &expModelFeatureValues)
+double r_f(size_t feature, ExpectedValues const &expFeatureValues,
+	ExpectedValues const &expModelFeatureValues)
 {
-	unordered_map<size_t, double>::const_iterator expIter = expFeatureValues.find(feature);
+	ExpectedValues::const_iterator expIter = expFeatureValues.find(feature);
 	return expIter->second <= expModelFeatureValues.find(expIter->first)->second ?
 		1 : -1;
 }
@@ -308,7 +308,7 @@ unordered_map<size_t, double> a_f(FeatureSet const &features)
 // Calculate the gain of adding each feature.
 OrderedGains calcGains(DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
-	unordered_map<size_t, double> const &expFeatureValues,
+	ExpectedValues const &expFeatureValues,
 	unordered_map<size_t, double> const &alphas,
 	vector<vector<double> > const &sums,
 	vector<double> const &zs)
@@ -350,7 +350,7 @@ OrderedGains calcGains(DataSet const &dataSet,
 // Calculate the gain of adding a feature to the model.
 double calcGain(DataSet const &dataSet,
 	size_t feature,
-	unordered_map<size_t, double> const &expFeatureValues,
+	ExpectedValues const &expFeatureValues,
 	double alpha,
 	vector<vector<double> > const &sums,
 	vector<double> const &zs)
@@ -372,9 +372,9 @@ double calcGain(DataSet const &dataSet,
 }
 
 // Hmpf...
-unordered_map<int, double> orderedGainsToMap(OrderedGains const &gains)
+GainMap orderedGainsToMap(OrderedGains const &gains)
 {
-	unordered_map<int, double> gainMap;
+	GainMap gainMap;
 
 	for (OrderedGains::const_iterator iter = gains.begin(); iter != gains.end(); ++iter)
 		gainMap[iter->first] = iter->second;
@@ -383,13 +383,13 @@ unordered_map<int, double> orderedGainsToMap(OrderedGains const &gains)
 }
 
 // Calculate (un)normalized deltas of gains.
-unordered_map<int, double> gainDeltas(OrderedGains const &prevGains, OrderedGains const &gains,
+GainDeltas gainDeltas(OrderedGains const &prevGains, OrderedGains const &gains,
 	double gainThreshold, bool normalize)
 {
 	GainMap gainMap = orderedGainsToMap(gains);
 	GainMap prevGainMap = orderedGainsToMap(prevGains);
 	
-	unordered_map<int, double> gainDeltas;
+	GainDeltas gainDeltas;
 	
 	for (GainMap::const_iterator iter = gainMap.begin(); iter != gainMap.end(); ++iter)
 	{
@@ -419,24 +419,24 @@ OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
 {
 	OrderedGains overlappingFs;
 
-	unordered_map<int, double> deltas = gainDeltas(prevGains, gains, gainThreshold, normalizeDeltas);
+	GainDeltas deltas = gainDeltas(prevGains, gains, gainThreshold, normalizeDeltas);
 	
 	// Average
 	double sum = 0.0;
-	for (unordered_map<int, double>::const_iterator iter = deltas.begin();
+	for (GainDeltas::const_iterator iter = deltas.begin();
 			iter != deltas.end(); ++iter)
 		sum += iter->second;
 	double avg = sum / deltas.size();
 	
 	// Standard deviation
 	double sqDiffSum = 0.0;
-	for (unordered_map<int, double>::const_iterator iter = deltas.begin();
+	for (GainDeltas::const_iterator iter = deltas.begin();
 			iter != deltas.end(); ++iter)
 		sqDiffSum += pow(iter->second - avg, 2);
 	double sd = sqrt(sqDiffSum / deltas.size());
 	
 	double const SE99 = 2.68;
-	for (unordered_map<int, double>::const_iterator iter = deltas.begin();
+	for (GainDeltas::const_iterator iter = deltas.begin();
 		iter != deltas.end(); ++iter)
 	{
 		double zIndex = (iter->second - avg) / sd;
@@ -449,13 +449,13 @@ OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
 
 OrderedGains fullSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
-	unordered_map<size_t, double> const &expVals,
+	ExpectedValues const &expVals,
 	vector<double> *zs,
 	vector<vector<double> > *sums,
 	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas)
 {
-	unordered_map<size_t, double> expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
+	ExpectedValues expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
 
 	vector<FeatureSet> ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, false, *sums, *zs);
 	FeatureSet unconvergedFs = activeFeatures(ctxActiveFs);
@@ -497,7 +497,7 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	Zs zs = initialZs(dataSet);
 	Sums sums = initialSums(dataSet);
 	
-	unordered_map<size_t, double> expVals = expFeatureValues(dataSet);
+	ExpectedValues expVals = expFeatureValues(dataSet);
 	
 	OrderedGains prevGains;
 	while(selectedFeatures.size() < nFeatures)	
@@ -546,14 +546,14 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 
 void fastSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
-	unordered_map<size_t, double> const &expVals,
+	ExpectedValues const &expVals,
 	vector<double> *zs,
 	vector<vector<double> > *sums,
 	FeatureSet *selectedFeatures,
 	SelectedFeatureAlphas *selectedFeatureAlphas,
 	OrderedGains *gains)
 {
-	unordered_map<size_t, double> expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
+	ExpectedValues expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
 
 	while (true)
 	{
@@ -608,7 +608,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	Zs zs = initialZs(dataSet);
 	Sums sums = initialSums(dataSet);
 	
-	unordered_map<size_t, double> expVals = expFeatureValues(dataSet);
+	ExpectedValues expVals = expFeatureValues(dataSet);
 
 	// Start with a full selection stage to calculate the stage 2 model and gains.
 	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &zs, &sums,

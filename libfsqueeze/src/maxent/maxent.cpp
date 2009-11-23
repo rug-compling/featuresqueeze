@@ -27,9 +27,9 @@ void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
 	}
 }
 
-unordered_map<size_t, double> fsqueeze::expFeatureValues(DataSet const &dataSet)
+ExpectedValues fsqueeze::expFeatureValues(DataSet const &dataSet)
 {
-	unordered_map<size_t, double> expVals;
+	ExpectedValues expVals;
 	
 	for (DsFeatureMap::const_iterator fIter = dataSet.features().begin();
 		fIter != dataSet.features().end(); ++fIter)
@@ -45,11 +45,11 @@ unordered_map<size_t, double> fsqueeze::expFeatureValues(DataSet const &dataSet)
 	return expVals;
 }
 
-unordered_map<size_t, double> fsqueeze::expModelFeatureValues(
+ExpectedValues fsqueeze::expModelFeatureValues(
 	DataSet const &dataSet,
 	Sums const &sums, Zs const &zs)
 {
-	unordered_map<size_t, double> expVals;
+	ExpectedValues expVals;
 
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
 	Sums::const_iterator ctxSumIter = sums.begin();

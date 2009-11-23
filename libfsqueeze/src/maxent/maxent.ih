@@ -4,11 +4,8 @@
 #include <iterator>
 #include <vector>
 
-#include <tr1/unordered_map>
-
 #include <FeatureSqueeze/functional.hh>
 #include <FeatureSqueeze/maxent.hh>
 
 using namespace std;
-using namespace std::tr1;
 using namespace fsqueeze;

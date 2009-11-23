@@ -63,7 +63,8 @@ struct GainLess
 };
 
 typedef std::set<std::pair<size_t, double>, GainLess> OrderedGains;
-typedef std::tr1::unordered_map<int, double> GainMap;
+typedef std::tr1::unordered_map<size_t, double> GainMap;
+typedef std::tr1::unordered_map<size_t, double> GainDeltas;
 
 /**
  * Select features based on a dataset using the fast selection algorithm.
