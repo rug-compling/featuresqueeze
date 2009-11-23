@@ -6,9 +6,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include <tr1/unordered_map>
-#include <tr1/unordered_set>
-
 #include <FeatureSqueeze/functional.hh>
 #include <FeatureSqueeze/maxent.hh>
 #include <FeatureSqueeze/util.hh>

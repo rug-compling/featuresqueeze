@@ -45,6 +45,12 @@ inline std::ostream &operator<<(std::ostream &out, std::pair<size_t, double> con
 
 namespace fsqueeze {
 
+typedef std::tr1::unordered_map<size_t, double> A_f;
+typedef std::tr1::unordered_map<size_t, double> R_f;
+typedef std::tr1::unordered_map<size_t, double> Gp;
+typedef std::tr1::unordered_map<size_t, double> Gpp;
+typedef std::tr1::unordered_map<size_t, double> GainMap;
+typedef std::tr1::unordered_map<size_t, double> GainDeltas;
 typedef std::vector<Triple<size_t, double, double> > SelectedFeatureAlphas;
 
 struct GainLess
@@ -63,8 +69,6 @@ struct GainLess
 };
 
 typedef std::set<std::pair<size_t, double>, GainLess> OrderedGains;
-typedef std::tr1::unordered_map<size_t, double> GainMap;
-typedef std::tr1::unordered_map<size_t, double> GainDeltas;
 
 /**
  * Select features based on a dataset using the fast selection algorithm.

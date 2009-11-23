@@ -10,6 +10,7 @@
 namespace fsqueeze
 {
 
+typedef std::tr1::unordered_map<size_t, double> FeatureWeights;
 typedef std::tr1::unordered_map<size_t, double> ExpectedValues;
 typedef std::vector<std::vector<double> > Sums;
 typedef std::vector<double> Sum;

@@ -101,11 +101,11 @@ FeatureSet activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 }
 
 // R(f)
-unordered_map<size_t, double> r_f(FeatureSet const &features,
+R_f r_f(FeatureSet const &features,
 	ExpectedValues const &expFeatureValues,
 	ExpectedValues const &expModelFeatureValues)
 {
-	unordered_map<size_t, double> r;
+	R_f r;
 	
 	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end(); ++iter)
 	{
@@ -189,9 +189,9 @@ void updateGradients(DataSet const &dataSet,
 	vector<FeatureSet> const &activeFeatures,
 	Sums const &sums,
 	Zs const &zs,
-	unordered_map<size_t, double> const &alphas,
-	unordered_map<size_t, double> *gp,
-	unordered_map<size_t, double> *gpp)
+	FeatureWeights const &alphas,
+	Gp *gp,
+	Gpp *gpp)
 {
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
 	Sums::const_iterator ctxSumIter = sums.begin();
@@ -271,10 +271,10 @@ bool updateAlpha(double rF, double gp, double gpp, double *alpha,
 
 // Calculate feature weights for the current model, given G', G'' and R(f).
 FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
-	unordered_map<size_t, double> const &r,
-	unordered_map<size_t, double> const &gp,
-	unordered_map<size_t, double> const &gpp,
-	unordered_map<size_t, double> *alphas,
+	R_f const &r,
+	Gp const &gp,
+	Gpp const &gpp,
+	FeatureWeights *alphas,
 	double alphaThreshold)
 {
 	FeatureSet newUnconvergedFs = unconvergedFeatures;
@@ -294,9 +294,9 @@ FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 }
 
 // Initial feature weights (0.0).
-unordered_map<size_t, double> a_f(FeatureSet const &features)
+A_f a_f(FeatureSet const &features)
 {
-	unordered_map<size_t, double> a;
+	A_f a;
 	
 	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end();
 			++iter)
@@ -309,11 +309,11 @@ unordered_map<size_t, double> a_f(FeatureSet const &features)
 OrderedGains calcGains(DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
 	ExpectedValues const &expFeatureValues,
-	unordered_map<size_t, double> const &alphas,
+	FeatureWeights const &alphas,
 	vector<vector<double> > const &sums,
 	vector<double> const &zs)
 {
-	unordered_map<size_t, double> gainSum;
+	GainMap gainSum;
 	
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
 	vector<FeatureSet>::const_iterator fsIter = contextActiveFeatures.begin();
@@ -321,7 +321,7 @@ OrderedGains calcGains(DataSet const &dataSet,
 	Zs::const_iterator zIter = zs.begin();
 	while (ctxIter != dataSet.contexts().end())
 	{
-		for (unordered_map<size_t, double>::const_iterator alphaIter =
+		for (FeatureWeights::const_iterator alphaIter =
 			alphas.begin(); alphaIter != alphas.end();
 			++alphaIter)
 		{
@@ -337,7 +337,7 @@ OrderedGains calcGains(DataSet const &dataSet,
 	}
 	
 	OrderedGains gains;
-	for (unordered_map<size_t, double>::const_iterator alphaIter = alphas.begin();
+	for (FeatureWeights::const_iterator alphaIter = alphas.begin();
 			alphaIter != alphas.end(); ++alphaIter)
 		gains.insert(make_pair(alphaIter->first,
 			gainSum[alphaIter->first] + alphaIter->second *
@@ -460,14 +460,14 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 	vector<FeatureSet> ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, false, *sums, *zs);
 	FeatureSet unconvergedFs = activeFeatures(ctxActiveFs);
 
-	unordered_map<size_t, double> r = r_f(unconvergedFs, expVals, expModelVals);
+	R_f r = r_f(unconvergedFs, expVals, expModelVals);
 	
-	unordered_map<size_t, double> a = a_f(unconvergedFs);
+	A_f a = a_f(unconvergedFs);
 
 	while (unconvergedFs.size() != 0)
 	{
-		unordered_map<size_t, double> gp = expVals;
-		unordered_map<size_t, double> gpp = a_f(unconvergedFs);
+		Gp gp = expVals;
+		Gpp gpp = a_f(unconvergedFs);
 	
 		updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
