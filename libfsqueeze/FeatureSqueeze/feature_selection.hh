@@ -23,7 +23,6 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
-#include <set>
 #include <utility>
 #include <vector>
 
@@ -49,26 +48,8 @@ typedef std::tr1::unordered_map<size_t, double> A_f;
 typedef std::tr1::unordered_map<size_t, double> R_f;
 typedef std::tr1::unordered_map<size_t, double> Gp;
 typedef std::tr1::unordered_map<size_t, double> Gpp;
-typedef std::tr1::unordered_map<size_t, double> GainMap;
 typedef std::tr1::unordered_map<size_t, double> GainDeltas;
 typedef std::vector<Triple<size_t, double, double> > SelectedFeatureAlphas;
-
-struct GainLess
-{
-	bool operator()(std::pair<size_t, double> const &f1, std::pair<size_t, double> const &f2)
-	{
-		// Treat NaN as no gain.
-		double g1 = std::isnan(f1.second) ? 0.0 : f1.second;
-		double g2 = std::isnan(f2.second) ? 0.0 : f2.second;
-		
-		if (g1 == g2)
-			return f1.first < f2.first;
-		
-		return g1 > g2;
-	}
-};
-
-typedef std::set<std::pair<size_t, double>, GainLess> OrderedGains;
 
 /**
  * Select features based on a dataset using the fast selection algorithm.

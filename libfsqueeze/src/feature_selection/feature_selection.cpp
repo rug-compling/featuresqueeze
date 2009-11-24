@@ -19,87 +19,6 @@
 
 #include "feature_selection.ih"
 
-double zf(EventVector const &events, Sum const &ctxSums, double z,
-	size_t feature, double alpha);
-
-vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
-	FeatureSet const &selectedFeatures, bool includeSelected,
-	Sums const &sums, Zs const &zs)
-{
-	vector<FeatureSet> ctxActive;
-	
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
-	while (ctxIter != dataSet.contexts().end())
-	{
-		FeatureSet active;
-
-		// This context can not have active features if its probability is zero.
-		if (ctxIter->prob() == 0.0)
-		{
-			ctxActive.push_back(active);
-			continue;
-		}
-
-		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		Sum::const_iterator sumIter = ctxSumIter->begin();
-		while (evtIter != ctxIter->events().end())
-		{
-			// This event can not have active features if its probability is zero.
-			if (p_yx(*sumIter, *zIter) == 0.0)
-				continue;
-
-			FeatureMap const &features = evtIter->features();
-
-			// Iterate over the provided feature set if it is small...
-			if (includeSelected && selectedFeatures.size() < evtIter->features().size())
-				for (FeatureSet::const_iterator fIter = selectedFeatures.begin();
-					fIter != selectedFeatures.end(); ++fIter)
-				{
-					FeatureMap::const_iterator f = features.find(*fIter);
-					if (f != features.end() && f->second.value() != 0.0)
-						active.insert(*fIter);
-				}
-			// ...otherwise iterate over all features of the current event.
-			else
-				for (FeatureMap::const_iterator fIter = evtIter->features().begin();
-						fIter != evtIter->features().end();
-						++fIter)
-					if (includeSelected)
-					{
-						if (selectedFeatures.find(fIter->first) != selectedFeatures.end() &&
-								fIter->second.value() != 0.0)
-							active.insert(fIter->first);
-					}	
-					else
-						if (selectedFeatures.find(fIter->first) == selectedFeatures.end() &&
-								fIter->second.value() != 0.0)
-							active.insert(fIter->first);
-			
-			++evtIter; ++sumIter;
-		}
-		
-		ctxActive.push_back(active);
-		
-		++ctxIter; ++ctxSumIter; ++zIter;
-	}
-	
-	return ctxActive;
-}
-
-// Active features in at least one context.
-FeatureSet activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
-{
-	FeatureSet active;
-	
-	for (vector<FeatureSet>::const_iterator ctxIter = contextActiveFeatures.begin();
-			ctxIter != contextActiveFeatures.end(); ++ctxIter)
-		active.insert(ctxIter->begin(), ctxIter->end());
-	
-	return active;
-}
-
 // R(f)
 R_f r_f(FeatureSet const &features,
 	ExpectedValues const &expFeatureValues,
@@ -305,72 +224,6 @@ A_f a_f(FeatureSet const &features)
 	return a;
 }
 
-// Calculate the gain of adding each feature.
-OrderedGains calcGains(DataSet const &dataSet,
-	vector<FeatureSet> const &contextActiveFeatures,
-	ExpectedValues const &expFeatureValues,
-	FeatureWeights const &alphas,
-	Sums const &sums,
-	Zs const &zs)
-{
-	GainMap gainSum;
-	
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	vector<FeatureSet>::const_iterator fsIter = contextActiveFeatures.begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
-	while (ctxIter != dataSet.contexts().end())
-	{
-		for (FeatureWeights::const_iterator alphaIter =
-			alphas.begin(); alphaIter != alphas.end();
-			++alphaIter)
-		{
-			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, alphaIter->first,
-				alphaIter->second);
-			
-			double lg = ctxIter->prob() * log(newZ / *zIter);
-			
-			gainSum[alphaIter->first] -= lg;
-		}
-		
-		++ctxIter; ++fsIter; ++ctxSumIter; ++zIter;
-	}
-	
-	OrderedGains gains;
-	for (FeatureWeights::const_iterator alphaIter = alphas.begin();
-			alphaIter != alphas.end(); ++alphaIter)
-		gains.insert(make_pair(alphaIter->first,
-			gainSum[alphaIter->first] + alphaIter->second *
-			expFeatureValues.find(alphaIter->first)->second
-		));
-	
-	return gains;
-}
-
-// Calculate the gain of adding a feature to the model.
-double calcGain(DataSet const &dataSet,
-	size_t feature,
-	ExpectedValues const &expFeatureValues,
-	double alpha,
-	Sums const &sums,
-	Zs const &zs)
-{
-	double gainSum = 0.0;
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
-	while(ctxIter != dataSet.contexts().end())
-	{
-		double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
-		double lg = ctxIter->prob() * log(newZ / *zIter);
-		gainSum -= lg;
-		
-		++ctxIter; ++ctxSumIter; ++zIter;
-	}
-	
-	return gainSum + alpha * expFeatureValues.find(feature)->second;
-}
-
 // Hmpf...
 GainMap orderedGainsToMap(OrderedGains const &gains)
 {
@@ -457,7 +310,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 {
 	ExpectedValues expModelVals = expModelFeatureValues(dataSet, *sums, *zs);
 
-	vector<FeatureSet> ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, false, *sums, *zs);
+	vector<FeatureSet> ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, *sums, *zs);
 	FeatureSet unconvergedFs = activeFeatures(ctxActiveFs);
 
 	R_f r = r_f(unconvergedFs, expVals, expModelVals);
@@ -473,7 +326,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
 	}
 
-	OrderedGains gains = calcGains(dataSet, ctxActiveFs, expVals, a, *sums, *zs);
+	OrderedGains gains = calcGains(dataSet, ctxActiveFs, expVals, *sums, *zs, a);
 
 	size_t maxF = gains.begin()->first;
 	double maxGain = gains.begin()->second;
@@ -571,7 +424,7 @@ void fastSelectionStage(DataSet const &dataSet,
 			converged = updateAlpha(r, gp, gpp, &a, alphaThreshold);
 		}	
 
-		double gain = calcGain(dataSet, feature, expVals, a, *sums, *zs);	
+		double gain = calcGain(dataSet, expVals, *sums, *zs, feature, a);	
 		
 		OrderedGains::const_iterator gainIter = gains->begin();		
 		++gainIter;
@@ -640,22 +493,3 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	return selectedFeatureAlphas;
 }
 
-
-double zf(EventVector const &events, Sum const &ctxSums, double z,
-	size_t feature, double alpha)
-{
-	double newZ = z;
-
-	EventVector::const_iterator evtIter = events.begin();
-	Sum::const_iterator sumIter = ctxSums.begin();
-	while (evtIter != events.end())
-	{
-		FeatureMap::const_iterator iter = evtIter->features().find(feature);
-		if (iter != evtIter->features().end())
-			newZ = newZ - *sumIter + *sumIter * exp(alpha * iter->second.value());
-
-		++evtIter; ++sumIter;
-	}
-	
-	return newZ;
-}
