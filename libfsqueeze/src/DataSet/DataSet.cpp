@@ -65,7 +65,7 @@ void DataSet::buildFeatureMap()
 				evtIter != ctxIter->events().end(); ++evtIter)
 			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
 					fIter != evtIter->features().end(); ++fIter)
-				d_features[fIter->first].push_back(make_pair(&(*evtIter), &(fIter->second)));
+				d_features[fIter->first].push_back(make_pair(&(*evtIter), fIter->second));
 }
 
 // Find 'dynamic' features. Dynamic features are features that do not retain the
@@ -97,7 +97,7 @@ unordered_set<size_t> DataSet::dynamicFeatures() const
 				if (iter == evtIter->features().end())
 					fVals[*fIter].insert(0.0);
 				else
-					fVals[*fIter].insert(iter->second.value());
+					fVals[*fIter].insert(iter->second);
 			}
 		
 		for (unordered_map<size_t, unordered_set<double> >::const_iterator iter = fVals.begin();
@@ -166,7 +166,7 @@ Event DataSet::readEvent(string const &eventLine)
 	{
 		size_t fId = parseString<size_t>(lineParts[i + 2]);
 		double fVal = parseString<double>(lineParts[i + 3]);
-		features[fId] = Feature(fId, fVal);
+		features[fId] = fVal;
 	}
 	
 	return Event(eventProb, features);

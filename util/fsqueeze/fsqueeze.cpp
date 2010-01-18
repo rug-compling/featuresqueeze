@@ -65,10 +65,11 @@ int main(int argc, char *argv[])
 	if (programOptions.option('g'))
 		gradientThreshold = fsqueeze::parseString<double>(programOptions.optionValue('g'));
 	
-	
 	size_t nFeatures = numeric_limits<size_t>::max();
 	if (programOptions.option('n'))
 		nFeatures = fsqueeze::parseString<size_t>(programOptions.optionValue('n'));
+	
+	cerr << "Reading data... ";
 
 	ifstream dataStream(programOptions.arguments()[0].c_str());
 	if (!dataStream)
@@ -78,6 +79,8 @@ int main(int argc, char *argv[])
 	}
 
 	fsqueeze::DataSet ds = fsqueeze::DataSet::readTADMDataSet(dataStream);
+
+	cerr << "done!" << endl;
 	
 	fsqueeze::Logger logger(cout, cerr);
 	if (programOptions.option('f'))

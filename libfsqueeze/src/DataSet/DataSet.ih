@@ -11,7 +11,6 @@
 #include <FeatureSqueeze/Context.hh>
 #include <FeatureSqueeze/DataSet.hh>
 #include <FeatureSqueeze/Event.hh>
-#include <FeatureSqueeze/Feature.hh>
 
 using namespace std;
 using namespace std::tr1;

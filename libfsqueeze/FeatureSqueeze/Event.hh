@@ -22,9 +22,9 @@
 
 #include <vector>
 
-#include "Feature.hh"
-
 namespace fsqueeze {
+
+typedef std::tr1::unordered_map<size_t, double> FeatureMap;
 
 class Event {
 public:

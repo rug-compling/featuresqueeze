@@ -47,7 +47,7 @@ void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
 			if (fIter != evtIter->features().end())
 			{
 				*zIter -= *sumIter;
-				*sumIter *= exp(alpha * fIter->second.value());
+				*sumIter *= exp(alpha * fIter->second);
 				*zIter += *sumIter;
 			}
 			
@@ -159,7 +159,7 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 					fIter != evtIter->features().end();
 					++fIter)
 				if (excludedFeatures.find(fIter->first) == excludedFeatures.end() &&
-						fIter->second.value() != 0.0)
+						fIter->second != 0.0)
 					active.insert(fIter->first);
 			
 			++evtIter; ++sumIter;
@@ -181,10 +181,10 @@ ExpectedValues fsqueeze::expFeatureValues(DataSet const &dataSet)
 		fIter != dataSet.features().end(); ++fIter)
 	{
 		double expVal = 0.0;
-		for (std::vector<std::pair<Event const *, Feature const *> >::const_iterator occIter =
+		for (std::vector<std::pair<Event const *, double> >::const_iterator occIter =
 				fIter->second.begin(); occIter != fIter->second.end();
 				++occIter)
-			expVal += occIter->first->prob() * occIter->second->value();
+			expVal += occIter->first->prob() * occIter->second;
 		expVals[fIter->first] = expVal;
 	}
 	
@@ -210,7 +210,7 @@ ExpectedValues fsqueeze::expModelFeatureValues(
 			
 			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
 					fIter != evtIter->features().end(); ++fIter)
-				expVals[fIter->first] += ctxIter->prob() * pyx * fIter->second.value();
+				expVals[fIter->first] += ctxIter->prob() * pyx * fIter->second;
 			
 			++evtIter; ++sumIter;
 		}
@@ -256,7 +256,7 @@ double fsqueeze::zf(EventVector const &events, Sum const &ctxSums, double z,
 	{
 		FeatureMap::const_iterator iter = evtIter->features().find(feature);
 		if (iter != evtIter->features().end())
-			newZ = newZ - *sumIter + *sumIter * exp(alpha * iter->second.value());
+			newZ = newZ - *sumIter + *sumIter * exp(alpha * iter->second);
 
 		++evtIter; ++sumIter;
 	}
