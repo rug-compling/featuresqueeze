@@ -141,6 +141,7 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 		if (ctxIter->prob() == 0.0)
 		{
 			ctxActive.push_back(active);
+			++ctxIter; ++ctxSumIter; ++zIter;	
 			continue;
 		}
 
@@ -149,8 +150,10 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 		while (evtIter != ctxIter->events().end())
 		{
 			// This event can not have active features if its probability is zero.
-			if (p_yx(*sumIter, *zIter) == 0.0)
+			if (p_yx(*sumIter, *zIter) == 0.0) {
+				++evtIter; ++sumIter;
 				continue;
+			}
 
 			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
 					fIter != evtIter->features().end();
