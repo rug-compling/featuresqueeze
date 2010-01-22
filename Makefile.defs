@@ -1,0 +1,2 @@
+# Prefix to the Eigen 2.0 matrix library. 
+EIGEN2PREFIX=/opt/local
