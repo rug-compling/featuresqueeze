@@ -28,6 +28,8 @@
 
 #include <tr1/unordered_map>
 
+#include <Eigen/Core>
+
 #include "DataSet.hh"
 #include "Logger.hh"
 
@@ -44,10 +46,10 @@ inline std::ostream &operator<<(std::ostream &out, std::pair<size_t, double> con
 
 namespace fsqueeze {
 
-typedef std::tr1::unordered_map<size_t, double> A_f;
+//typedef Eigen::VectorXd A_f;
 typedef std::tr1::unordered_map<size_t, double> R_f;
-typedef std::tr1::unordered_map<size_t, double> Gp;
-typedef std::tr1::unordered_map<size_t, double> Gpp;
+typedef Eigen::VectorXd Gp;
+typedef Eigen::VectorXd Gpp;
 typedef std::tr1::unordered_map<size_t, double> GainDeltas;
 typedef std::vector<Triple<size_t, double, double> > SelectedFeatureAlphas;
 

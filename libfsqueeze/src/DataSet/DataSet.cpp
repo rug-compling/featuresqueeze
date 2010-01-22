@@ -27,8 +27,10 @@ string const ERR_INCORRECT_NFEATURES =
 string const ERR_INCORRECT_EVENT =
 	string("Incorrect event line: ");
 
-DataSet::DataSet(ContextVector const &contexts) : d_contexts(contexts)
+DataSet::DataSet(ContextVector const &contexts)
+	: d_contexts(contexts), d_nFeatures(0)
 {
+	countFeatures();
 	removeStaticFeatures();
 	normalize();
 	buildFeatureMap();
@@ -50,6 +52,7 @@ DataSet &DataSet::operator=(DataSet const &other)
 void DataSet::copy(DataSet const &other)
 {
 	d_contexts = other.d_contexts;
+	d_nFeatures = other.d_nFeatures;
 	buildFeatureMap();
 }
 
@@ -66,6 +69,20 @@ void DataSet::buildFeatureMap()
 			for (FeatureVector::InnerIterator fIter(evtIter->features());
 					fIter; ++fIter)
 				d_features[fIter.index()].push_back(make_pair(&(*evtIter), fIter.value()));
+}
+
+void DataSet::countFeatures()
+{
+	for (ContextVector::const_iterator ctxIter = d_contexts.begin();
+			ctxIter != d_contexts.end(); ++ctxIter)
+		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
+				evtIter != ctxIter->events().end(); ++evtIter)
+			for (FeatureVector::InnerIterator fIter(evtIter->features());
+					fIter; ++fIter)
+				if (fIter.index() > d_nFeatures)
+					d_nFeatures = fIter.index();
+	
+	++d_nFeatures;
 }
 
 // Find 'dynamic' features. Dynamic features are features that do not retain the

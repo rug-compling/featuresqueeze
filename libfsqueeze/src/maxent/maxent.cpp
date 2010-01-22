@@ -79,7 +79,7 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 		++ctxIter; ++ctxSumIter; ++zIter;
 	}
 	
-	return gainSum + alpha * expFeatureValues.find(feature)->second;
+	return gainSum + alpha * expFeatureValues.coeff(feature);
 }
 
 // Calculate the gain of adding each feature.
@@ -94,33 +94,31 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 	GainMap gainSum;
 	
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	vector<FeatureSet>::const_iterator fsIter = contextActiveFeatures.begin();
+	vector<FeatureSet>::const_iterator ctxFsIter = contextActiveFeatures.begin();
 	Sums::const_iterator ctxSumIter = sums.begin();
 	Zs::const_iterator zIter = zs.begin();
 	while (ctxIter != dataSet.contexts().end())
 	{
-		for (FeatureWeights::const_iterator alphaIter =
-			alphas.begin(); alphaIter != alphas.end();
-			++alphaIter)
+		for (FeatureSet::const_iterator fsIter = ctxFsIter->begin();
+			fsIter != ctxFsIter->end(); ++fsIter)
 		{
-			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, alphaIter->first,
-				alphaIter->second);
+			int f = *fsIter;
+
+			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, f,
+				alphas[f]);
 			
 			double lg = ctxIter->prob() * log(newZ / *zIter);
 			
-			gainSum[alphaIter->first] -= lg;
+			gainSum[f] -= lg;
 		}
 		
-		++ctxIter; ++fsIter; ++ctxSumIter; ++zIter;
+		++ctxIter; ++ctxFsIter; ++ctxSumIter; ++zIter;
 	}
 	
 	OrderedGains gains;
-	for (FeatureWeights::const_iterator alphaIter = alphas.begin();
-			alphaIter != alphas.end(); ++alphaIter)
-		gains.insert(make_pair(alphaIter->first,
-			gainSum[alphaIter->first] + alphaIter->second *
-			expFeatureValues.find(alphaIter->first)->second
-		));
+	for (int f = 0; f < alphas.rows(); ++f)
+		gains.insert(make_pair(f, gainSum[f] + alphas[f] *
+			expFeatureValues[f]));
 	
 	return gains;
 }
@@ -174,7 +172,7 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 
 ExpectedValues fsqueeze::expFeatureValues(DataSet const &dataSet)
 {
-	ExpectedValues expVals;
+	ExpectedValues expVals(dataSet.nFeatures());
 	
 	for (DsFeatureMap::const_iterator fIter = dataSet.features().begin();
 		fIter != dataSet.features().end(); ++fIter)
@@ -184,7 +182,7 @@ ExpectedValues fsqueeze::expFeatureValues(DataSet const &dataSet)
 				fIter->second.begin(); occIter != fIter->second.end();
 				++occIter)
 			expVal += occIter->first->prob() * occIter->second;
-		expVals[fIter->first] = expVal;
+		expVals.coeffRef(fIter->first) = expVal;
 	}
 	
 	return expVals;
@@ -194,7 +192,7 @@ ExpectedValues fsqueeze::expModelFeatureValues(
 	DataSet const &dataSet,
 	Sums const &sums, Zs const &zs)
 {
-	ExpectedValues expVals;
+	ExpectedValues expVals(dataSet.nFeatures());
 
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
 	Sums::const_iterator ctxSumIter = sums.begin();
@@ -209,7 +207,7 @@ ExpectedValues fsqueeze::expModelFeatureValues(
 			
 			for (FeatureVector::InnerIterator fIter(evtIter->features());
 					fIter; ++fIter)
-				expVals[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
+				expVals.coeffRef(fIter.index()) += ctxIter->prob() * pyx * fIter.value();
 			
 			++evtIter; ++sumIter;
 		}

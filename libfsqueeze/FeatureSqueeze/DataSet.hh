@@ -68,6 +68,11 @@ public:
 	 * Get dataset features.
 	 */
 	DsFeatureMap const &features() const;
+	
+	/**
+	 * Return the number of features.
+	 */
+	int nFeatures() const;
 
 	/**
 	 * Read a TADM-style dataset from an input stream.
@@ -77,6 +82,7 @@ private:
 	void copy(DataSet const &other);
 	void buildFeatureMap();
 	double contextSum() const;
+	void countFeatures();
 	std::tr1::unordered_set<size_t> dynamicFeatures() const;
 	void normalize();
 	void normalizeContexts(double ctxSum);
@@ -88,6 +94,7 @@ private:
 	
 	ContextVector d_contexts;
 	DsFeatureMap d_features;
+	int d_nFeatures;
 };
 
 class NormalizeEvent
@@ -123,6 +130,12 @@ inline DsFeatureMap const &DataSet::features() const
 {
 	return d_features;
 }
+
+inline int DataSet::nFeatures() const
+{
+	return d_nFeatures;
+}
+
 
 inline Event NormalizeEvent::operator()(Event const &event) const
 {

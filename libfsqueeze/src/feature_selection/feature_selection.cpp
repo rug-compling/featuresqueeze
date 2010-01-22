@@ -27,11 +27,8 @@ R_f r_f(FeatureSet const &features,
 	R_f r;
 	
 	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end(); ++iter)
-	{
-		ExpectedValues::const_iterator expIter = expFeatureValues.find(*iter);
-		r[*iter] = expIter->second <=
-			expModelFeatureValues.find(expIter->first)->second ? 1 : -1;
-	}
+		r[*iter] = expFeatureValues[*iter] <=
+			expModelFeatureValues[*iter] ? 1 : -1;
 
 	return r;
 }
@@ -39,8 +36,7 @@ R_f r_f(FeatureSet const &features,
 double r_f(size_t feature, ExpectedValues const &expFeatureValues,
 	ExpectedValues const &expModelFeatureValues)
 {
-	ExpectedValues::const_iterator expIter = expFeatureValues.find(feature);
-	return expIter->second <= expModelFeatureValues.find(expIter->first)->second ?
+	return expFeatureValues[feature] <= expModelFeatureValues[feature] ?
 		1 : -1;
 }
 
@@ -119,7 +115,7 @@ void updateGradients(DataSet const &dataSet,
 				continue;
 
 			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, *fsIter,
-				alphas.find(*fsIter)->second);
+				alphas[*fsIter]);
 			
 			Sum newSums(ctxSumIter->size(), 0);
 			double p_fx = 0.0;
@@ -130,7 +126,7 @@ void updateGradients(DataSet const &dataSet,
 			{
 				double fVal = evtIter->features().coeff(*fsIter);
 				
-				double newSum = *sumIter * exp(alphas.find(*fsIter)->second * fVal);
+				double newSum = *sumIter * exp(alphas[*fsIter] * fVal);
 				*newSumIter = newSum;
 				
 				p_fx += p_yx(newSum, newZ) * fVal;
@@ -188,10 +184,11 @@ FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 	for (FeatureSet::const_iterator fIter = unconvergedFeatures.begin();
 		fIter != unconvergedFeatures.end(); ++fIter)
 	{
-		size_t f = *fIter;
+		int f = *fIter;
 		double rF = r.find(f)->second;
-		double newAlpha = (*alphas)[f] + rF * log(1 - rF * (gp.find(f)->second / gpp.find(f)->second));
-		double delta = fabs((*alphas)[f] - newAlpha);
+		double oldAlpha = (*alphas)[f];
+		double newAlpha = oldAlpha + rF * log(1 - rF * (gp[f] / gpp[f]));
+		double delta = fabs(oldAlpha - newAlpha);
 		(*alphas)[f] = newAlpha;
 		if (delta < alphaThreshold || isnan(delta))
 			newUnconvergedFs.erase(f);
@@ -201,15 +198,9 @@ FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 }
 
 // Initial feature weights (0.0).
-A_f a_f(FeatureSet const &features)
+FeatureWeights a_f(size_t nFeatures)
 {
-	A_f a;
-	
-	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end();
-			++iter)
-		a[*iter] = 0.0;
-		
-	return a;
+	return FeatureWeights::Zero(nFeatures);		
 }
 
 // Hmpf...
@@ -303,12 +294,12 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 
 	R_f r = r_f(unconvergedFs, expVals, expModelVals);
 	
-	A_f a = a_f(unconvergedFs);
+	FeatureWeights a = a_f(dataSet.nFeatures());
 
 	while (unconvergedFs.size() != 0)
 	{
 		Gp gp = expVals;
-		Gpp gpp = a_f(unconvergedFs);
+		Gpp gpp = a_f(dataSet.nFeatures());
 	
 		updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
@@ -318,7 +309,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 
 	size_t maxF = gains.begin()->first;
 	double maxGain = gains.begin()->second;
-	double maxAlpha = a[maxF];
+	double maxAlpha = a.coeff(maxF);
 
 	adjustModel(dataSet, maxF, maxAlpha, sums, zs);
 		
@@ -405,7 +396,7 @@ void fastSelectionStage(DataSet const &dataSet,
 		bool converged = false;
 		while (!converged)
 		{
-			double gp = expVals.find(feature)->second;
+			double gp = expVals[feature];
 			double gpp = 0.0;
 			
 			updateGradient(dataSet, feature, *sums, *zs, a, &gp, &gpp);
@@ -480,4 +471,3 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	
 	return selectedFeatureAlphas;
 }
-

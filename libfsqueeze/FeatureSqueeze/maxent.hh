@@ -27,13 +27,15 @@
 #include <tr1/unordered_set>
 #include <tr1/unordered_map>
 
+#include <Eigen/Core>
+
 #include "DataSet.hh"
 
 namespace fsqueeze
 {
 
-typedef std::tr1::unordered_map<size_t, double> FeatureWeights;
-typedef std::tr1::unordered_map<size_t, double> ExpectedValues;
+typedef Eigen::VectorXd FeatureWeights;
+typedef Eigen::VectorXd ExpectedValues;
 typedef std::vector<std::vector<double> > Sums;
 typedef std::vector<double> Sum;
 typedef std::vector<double> Zs;
