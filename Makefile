@@ -1,4 +1,7 @@
-CXXFLAGS=-O3 -Wall -Wextra -pedantic -Ilibfsqueeze
+include Makefile.defs
+
+CXXFLAGS=-O3 -Wall -Ilibfsqueeze \
+	-I$(EIGEN2PREFIX)/include/eigen2
 CXX=g++
 
 LIBFSQUEEZE_SOURCES=\

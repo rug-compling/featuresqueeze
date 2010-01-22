@@ -66,10 +66,7 @@ void updateGradient(DataSet const &dataSet,
 		Sum::iterator newSumIter = newSums.begin();
 		while(evtIter != ctxIter->events().end())
 		{
-			double fVal = 0.0;
-			FeatureMap::const_iterator iter = evtIter->features().find(feature);
-			if (iter != evtIter->features().end())
-				fVal = iter->second;
+			double fVal = evtIter->features().coeff(feature);
 			
 			double newSum = *sumIter * exp(alpha * fVal);
 			*newSumIter = newSum;
@@ -84,10 +81,7 @@ void updateGradient(DataSet const &dataSet,
 		newSumIter = newSums.begin();
 		while (evtIter != ctxIter->events().end())
 		{
-			double fVal = 0.0;
-			FeatureMap::const_iterator iter = evtIter->features().find(feature);
-			if (iter != evtIter->features().end())
-				fVal = iter->second;
+			double fVal = evtIter->features().coeff(feature);
 			
 			double newSum = *newSumIter;
 			
@@ -134,10 +128,7 @@ void updateGradients(DataSet const &dataSet,
 			Sum::iterator newSumIter = newSums.begin();
 			while (evtIter != ctxIter->events().end())
 			{
-				double fVal = 0.0;
-				FeatureMap::const_iterator iter = evtIter->features().find(*fsIter);
-				if (iter != evtIter->features().end())
-					fVal = iter->second;
+				double fVal = evtIter->features().coeff(*fsIter);
 				
 				double newSum = *sumIter * exp(alphas.find(*fsIter)->second * fVal);
 				*newSumIter = newSum;
@@ -153,10 +144,7 @@ void updateGradients(DataSet const &dataSet,
 			newSumIter = newSums.begin();
 			while (evtIter != ctxIter->events().end())
 			{
-				double fVal = 0.0;
-				FeatureMap::const_iterator iter = evtIter->features().find(*fsIter);
-				if (iter != evtIter->features().end())
-					fVal = iter->second;
+				double fVal = evtIter->features().coeff(*fsIter);
 				
 				double newSum = *newSumIter;
 				

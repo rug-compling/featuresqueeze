@@ -63,9 +63,9 @@ void DataSet::buildFeatureMap()
 			ctxIter != d_contexts.end(); ++ctxIter)
 		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
 				evtIter != ctxIter->events().end(); ++evtIter)
-			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
-					fIter != evtIter->features().end(); ++fIter)
-				d_features[fIter->first].push_back(make_pair(&(*evtIter), fIter->second));
+			for (FeatureVector::InnerIterator fIter(evtIter->features());
+					fIter; ++fIter)
+				d_features[fIter.index()].push_back(make_pair(&(*evtIter), fIter.value()));
 }
 
 // Find 'dynamic' features. Dynamic features are features that do not retain the
@@ -81,10 +81,10 @@ unordered_set<size_t> DataSet::dynamicFeatures() const
 		unordered_set<size_t> ctxFs;
 		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
 				evtIter != ctxIter->events().end(); ++evtIter)
-			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
-					fIter != evtIter->features().end(); ++fIter)
-				if (changing.find(fIter->first) == changing.end())
-					ctxFs.insert(fIter->first);
+			for (FeatureVector::InnerIterator fIter(evtIter->features());
+					fIter; ++fIter)
+				if (changing.find(fIter.index()) == changing.end())
+					ctxFs.insert(fIter.index());
 		
 		// Find all feature values
 		unordered_map<size_t, unordered_set<double> > fVals;
@@ -93,11 +93,8 @@ unordered_set<size_t> DataSet::dynamicFeatures() const
 			for (unordered_set<size_t>::const_iterator fIter = ctxFs.begin();
 				fIter != ctxFs.end(); ++fIter)
 			{
-				FeatureMap::const_iterator iter = evtIter->features().find(*fIter);
-				if (iter == evtIter->features().end())
-					fVals[*fIter].insert(0.0);
-				else
-					fVals[*fIter].insert(iter->second);
+				double coeff = evtIter->features().coeff(*fIter);
+				fVals[*fIter].insert(coeff);
 			}
 		
 		for (unordered_map<size_t, unordered_set<double> >::const_iterator iter = fVals.begin();
@@ -160,13 +157,13 @@ Event DataSet::readEvent(string const &eventLine)
 	if ((nFeatures * 2) + 2 != lineParts.size())
 		throw runtime_error(ERR_INCORRECT_NFEATURES + eventLine);
 	
-	FeatureMap features;
+	FeatureVector features;
 
 	for (size_t i = 0; i < (2 * nFeatures); i += 2)
 	{
 		size_t fId = parseString<size_t>(lineParts[i + 2]);
 		double fVal = parseString<double>(lineParts[i + 3]);
-		features[fId] = fVal;
+		features.coeffRef(fId) = fVal;
 	}
 	
 	return Event(eventProb, features);
@@ -228,12 +225,13 @@ void DataSet::removeStaticFeatures()
 		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
 			evtIter != ctxIter->events().end(); ++evtIter)
 		{
-			FeatureMap features;
+			//FeatureMap features;
+			FeatureVector features;
 			
-			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
-					fIter != evtIter->features().end(); ++fIter)
-				if (dynFs.find(fIter->first) != dynFs.end())
-					features.insert(*fIter);
+			for (FeatureVector::InnerIterator fIter(evtIter->features());
+					fIter; ++fIter)
+				if (dynFs.find(fIter.index()) != dynFs.end())
+					features.coeffRef(fIter.index()) = fIter.value();
 			
 			events.push_back(Event(evtIter->prob(), features));
 		}

@@ -43,11 +43,11 @@ void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
 		Sum::iterator sumIter = ctxSumIter->begin();
 		while (evtIter != ctxIter->events().end())
 		{
-			FeatureMap::const_iterator fIter = evtIter->features().find(feature);
-			if (fIter != evtIter->features().end())
+			double fVal = evtIter->features().coeff(feature);
+			if (fVal != 0.0)
 			{
 				*zIter -= *sumIter;
-				*sumIter *= exp(alpha * fIter->second);
+				*sumIter *= exp(alpha * fVal);
 				*zIter += *sumIter;
 			}
 			
@@ -155,12 +155,11 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 				continue;
 			}
 
-			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
-					fIter != evtIter->features().end();
-					++fIter)
-				if (excludedFeatures.find(fIter->first) == excludedFeatures.end() &&
-						fIter->second != 0.0)
-					active.insert(fIter->first);
+			for (FeatureVector::InnerIterator fIter(evtIter->features());
+					fIter; ++fIter)
+				if (excludedFeatures.find(fIter.index()) == excludedFeatures.end() &&
+						fIter.value() != 0.0)
+					active.insert(fIter.index());
 			
 			++evtIter; ++sumIter;
 		}
@@ -208,9 +207,9 @@ ExpectedValues fsqueeze::expModelFeatureValues(
 		{
 			double pyx = p_yx(*sumIter, *zIter);
 			
-			for (FeatureMap::const_iterator fIter = evtIter->features().begin();
-					fIter != evtIter->features().end(); ++fIter)
-				expVals[fIter->first] += ctxIter->prob() * pyx * fIter->second;
+			for (FeatureVector::InnerIterator fIter(evtIter->features());
+					fIter; ++fIter)
+				expVals[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
 			
 			++evtIter; ++sumIter;
 		}
@@ -254,9 +253,9 @@ double fsqueeze::zf(EventVector const &events, Sum const &ctxSums, double z,
 	Sum::const_iterator sumIter = ctxSums.begin();
 	while (evtIter != events.end())
 	{
-		FeatureMap::const_iterator iter = evtIter->features().find(feature);
-		if (iter != evtIter->features().end())
-			newZ = newZ - *sumIter + *sumIter * exp(alpha * iter->second);
+		double fVal = evtIter->features().coeff(feature);
+		if (fVal != 0.0)
+			newZ = newZ - *sumIter + *sumIter * exp(alpha * fVal);
 
 		++evtIter; ++sumIter;
 	}

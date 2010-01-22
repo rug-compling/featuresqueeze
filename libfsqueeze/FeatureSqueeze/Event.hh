@@ -22,13 +22,16 @@
 
 #include <vector>
 
+#include <Eigen/Sparse>
+
 namespace fsqueeze {
 
 typedef std::tr1::unordered_map<size_t, double> FeatureMap;
+typedef Eigen::SparseVector<double> FeatureVector;
 
 class Event {
 public:
-	Event(double prob, FeatureMap features) : d_prob(prob), d_features(features) {}
+	Event(double prob, FeatureVector features) : d_prob(prob), d_features(features) {}
 	
 	/**
 	 * Return the event probability.
@@ -43,15 +46,15 @@ public:
 	/**
 	 * Get the event feature map.
 	 */
-	FeatureMap const &features() const;
+	FeatureVector const &features() const;
 	
 	/**
 	 * Replace the event feature map.
 	 */
-	void features(FeatureMap const &newFeatures);
+	void features(FeatureVector const &newFeatures);
 private:
 	double d_prob;
-	FeatureMap d_features;
+	FeatureVector d_features;
 };
 
 inline double Event::prob() const
@@ -64,12 +67,12 @@ inline void Event::prob(double newProb)
 	d_prob = newProb;
 }
 
-inline FeatureMap const &Event::features() const
+inline FeatureVector const &Event::features() const
 {
 	return d_features;
 }
 
-inline void Event::features(FeatureMap const &newFeatures)
+inline void Event::features(FeatureVector const &newFeatures)
 {
 	d_features = newFeatures;
 }
