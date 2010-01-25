@@ -1,7 +1,6 @@
 include Makefile.defs
 
-CXXFLAGS=-O3 -Wall -Ilibfsqueeze \
-	-I$(EIGEN2PREFIX)/include/eigen2
+CXXFLAGS=-O3 -Wall -Ilibfsqueeze -I$(EIGEN2PREFIX)
 CXX=g++
 
 LIBFSQUEEZE_SOURCES=\

@@ -1,2 +1,2 @@
-# Prefix to the Eigen 2.0 matrix library. 
-EIGEN2PREFIX=/opt/local
+# Prefix to the Eigen 2.0 headers. 
+EIGEN2PREFIX=/opt/local/include/eigen2
