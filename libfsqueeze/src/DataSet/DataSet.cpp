@@ -64,23 +64,25 @@ void DataSet::buildFeatureMap()
 
 	for (ContextVector::const_iterator ctxIter = d_contexts.begin();
 			ctxIter != d_contexts.end(); ++ctxIter)
-		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
-				evtIter != ctxIter->events().end(); ++evtIter)
-			for (FeatureVector::InnerIterator fIter(evtIter->features());
+		for (int i = 0; i < ctxIter->eventProbs().size(); ++i)
+			for (FeatureValues::InnerIterator fIter(ctxIter->featureValues(), i);
 					fIter; ++fIter)
-				d_features[fIter.index()].push_back(make_pair(&(*evtIter), fIter.value()));
+				d_features[fIter.index()].push_back(make_pair(ctxIter->eventProbs().coeff(i),
+					fIter.value()));
 }
 
 void DataSet::countFeatures()
 {
 	for (ContextVector::const_iterator ctxIter = d_contexts.begin();
 			ctxIter != d_contexts.end(); ++ctxIter)
-		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
-				evtIter != ctxIter->events().end(); ++evtIter)
-			for (FeatureVector::InnerIterator fIter(evtIter->features());
-					fIter; ++fIter)
+	{
+		FeatureValues const &vals = ctxIter->featureValues();
+		
+		for (int i = 0; i < vals.outerSize(); ++i)
+			for (FeatureValues::InnerIterator fIter(vals, i); fIter; ++fIter)
 				if (fIter.index() > d_nFeatures)
 					d_nFeatures = fIter.index();
+	}
 	
 	++d_nFeatures;
 }
@@ -94,28 +96,27 @@ unordered_set<size_t> DataSet::dynamicFeatures() const
 	for (ContextVector::const_iterator ctxIter = d_contexts.begin();
 		ctxIter != d_contexts.end(); ++ctxIter)
 	{
+		FeatureValues const &fVals = ctxIter->featureValues();
+		
 		// Find all (non-proven) features for the current context.
 		unordered_set<size_t> ctxFs;
-		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
-				evtIter != ctxIter->events().end(); ++evtIter)
-			for (FeatureVector::InnerIterator fIter(evtIter->features());
-					fIter; ++fIter)
+		for (int i = 0; i < fVals.outerSize(); ++i)
+			for (FeatureValues::InnerIterator fIter(fVals, i); fIter; ++fIter)
 				if (changing.find(fIter.index()) == changing.end())
 					ctxFs.insert(fIter.index());
 		
 		// Find all feature values
-		unordered_map<size_t, unordered_set<double> > fVals;
-		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
-				evtIter != ctxIter->events().end(); ++evtIter)
+		unordered_map<size_t, unordered_set<double> > ctxFVals;
+		for (int i = 0; i < fVals.outerSize(); ++i)
 			for (unordered_set<size_t>::const_iterator fIter = ctxFs.begin();
 				fIter != ctxFs.end(); ++fIter)
 			{
-				double coeff = evtIter->features().coeff(*fIter);
-				fVals[*fIter].insert(coeff);
+				double coeff = fVals.coeff(i, *fIter);
+				ctxFVals[*fIter].insert(coeff);
 			}
 		
-		for (unordered_map<size_t, unordered_set<double> >::const_iterator iter = fVals.begin();
-				iter != fVals.end(); ++iter)
+		for (unordered_map<size_t, unordered_set<double> >::const_iterator iter = ctxFVals.begin();
+				iter != ctxFVals.end(); ++iter)
 			if (iter->second.size() > 1)
 				changing.insert(iter->first);
 	}
@@ -147,11 +148,11 @@ void DataSet::normalizeEvents(double ctxSum)
 {
 	for (ContextVector::iterator ctxIter = d_contexts.begin();
 		ctxIter != d_contexts.end(); ++ctxIter)
-	{
-		vector<Event> normalizedEvents;
-		transform(ctxIter->events().begin(), ctxIter->events().end(),
-			back_inserter(normalizedEvents), NormalizeEvent(ctxSum));
-		ctxIter->events(normalizedEvents);
+	{	
+		EventProbs normEvtProbs(ctxIter->eventProbs());
+		for (int i = 0; i < normEvtProbs.size(); ++i)
+			normEvtProbs[i] /= ctxSum;		
+		ctxIter->eventProbs(normEvtProbs);
 	}
 }
 
@@ -161,7 +162,7 @@ void DataSet::normalizeEvents(double ctxSum)
 // - The number of non-zero features.
 // - Feature/value pairs.
 //
-Event DataSet::readEvent(string const &eventLine)
+pair<double, SparseVector<double> > DataSet::readEvent(string const &eventLine)
 {
 	std::vector<std::string> lineParts = stringSplit(eventLine);
 	
@@ -173,17 +174,16 @@ Event DataSet::readEvent(string const &eventLine)
 
 	if ((nFeatures * 2) + 2 != lineParts.size())
 		throw runtime_error(ERR_INCORRECT_NFEATURES + eventLine);
-	
-	FeatureVector features;
 
+	SparseVector<double> fVals;
 	for (size_t i = 0; i < (2 * nFeatures); i += 2)
 	{
 		size_t fId = parseString<size_t>(lineParts[i + 2]);
 		double fVal = parseString<double>(lineParts[i + 3]);
-		features.coeffRef(fId) = fVal;
+		fVals.coeffRef(fId) = fVal;
 	}
 	
-	return Event(eventProb, features);
+	return make_pair(eventProb, fVals);
 }
 
 // Read a context, a context consists of:
@@ -197,7 +197,8 @@ Context DataSet::readContext(istream &iss)
 	getline(iss, nEventStr);
 	size_t nEvents = parseString<size_t>(nEventStr);
 	
-	EventVector events;
+	EventProbs evtProbs(nEvents);
+	FeatureValues fVals(nEvents, 0);
 	
 	for (size_t i = 0; i < nEvents; ++i)
 	{
@@ -205,10 +206,16 @@ Context DataSet::readContext(istream &iss)
 		if (!getline(iss, line))
 			throw runtime_error(ERR_INCORRECT_NEVENTS + nEventStr);
 		
-		events.push_back(readEvent(line));
+		pair<double, SparseVector<double> > evt = readEvent(line);
+
+		evtProbs[i] = evt.first;
+		
+		for (SparseVector<double>::InnerIterator fIter(evt.second); fIter;
+				++fIter)
+			fVals.coeffRef(i, fIter.index()) = fIter.value();		
 	}
 	
-	return Context(0.0, events);	
+	return Context(0.0, evtProbs, fVals);
 }
 
 DataSet DataSet::readTADMDataSet(istream &iss)
@@ -237,23 +244,21 @@ void DataSet::removeStaticFeatures()
 	for (ContextVector::iterator ctxIter = d_contexts.begin();
 		ctxIter != d_contexts.end(); ++ctxIter)
 	{
-		EventVector events;
+		FeatureValues const &origFeatureVals = ctxIter->featureValues();
+		FeatureValues featureVals(origFeatureVals.rows(),
+			origFeatureVals.cols());
 
-		for (EventVector::const_iterator evtIter = ctxIter->events().begin();
-			evtIter != ctxIter->events().end(); ++evtIter)
+		for (int i = 0; i < origFeatureVals.outerSize(); ++i)
 		{
-			//FeatureMap features;
-			FeatureVector features;
-			
-			for (FeatureVector::InnerIterator fIter(evtIter->features());
-					fIter; ++fIter)
+			for (FeatureValues::InnerIterator fIter(origFeatureVals, i);
+				fIter; ++fIter)
+			{
 				if (dynFs.find(fIter.index()) != dynFs.end())
-					features.coeffRef(fIter.index()) = fIter.value();
-			
-			events.push_back(Event(evtIter->prob(), features));
+					featureVals.coeffRef(i, fIter.index()) = fIter.value();
+			}
 		}
 		
-		ctxIter->events(events);
+		ctxIter->featureValues(featureVals);
 	}
 }
 
@@ -261,10 +266,5 @@ void DataSet::sumContexts()
 {
 	for (ContextVector::iterator ctxIter = d_contexts.begin();
 			ctxIter != d_contexts.end(); ++ctxIter)
-	{
-		double sum = for_each(ctxIter->events().begin(), ctxIter->events().end(),
-			SumProb<Event>()).sum;
-
-		ctxIter->prob(sum);
-	}
+		ctxIter->prob(ctxIter->eventProbs().sum());
 }

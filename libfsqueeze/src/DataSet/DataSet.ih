@@ -3,15 +3,18 @@
 #include <iterator>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
+#include <Eigen/Sparse>
+
 #include <FeatureSqueeze/stringutil.hh>
 #include <FeatureSqueeze/Context.hh>
 #include <FeatureSqueeze/DataSet.hh>
-#include <FeatureSqueeze/Event.hh>
 
 using namespace std;
 using namespace std::tr1;
+using namespace Eigen;
 using namespace fsqueeze;

@@ -38,19 +38,16 @@ void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
 	size_t i = 0;
 	while (ctxIter != dataSet.contexts().end())
 	{
-		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		size_t j = 0;
-		while (evtIter != ctxIter->events().end())
+		FeatureValues const &featureVals = ctxIter->featureValues();
+		for (int j = 0; j < featureVals.outerSize(); ++j)
 		{
-			double fVal = evtIter->features().coeff(feature);
+			double fVal = featureVals.coeff(j, feature);
 			if (fVal != 0.0)
 			{
 				(*zs)[i] -= (*sums)[i][j];
 				(*sums)[i][j] *= exp(alpha * fVal);
 				(*zs)[i] += (*sums)[i][j];
-			}
-			
-			++evtIter; ++j;
+			}			
 		}
 		
 		++ctxIter; ++i;
@@ -70,7 +67,7 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 	size_t i = 0;
 	while(ctxIter != dataSet.contexts().end())
 	{
-		double newZ = zf(ctxIter->events(), sums[i], zs[i], feature, alpha);
+		double newZ = zf(ctxIter->featureValues(), sums[i], zs[i], feature, alpha);
 		double lg = ctxIter->prob() * log(newZ / zs[i]);
 		gainSum -= lg;
 		
@@ -101,7 +98,7 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 		{
 			int f = *fsIter;
 
-			double newZ = zf(ctxIter->events(), sums[i], zs[i], f,
+			double newZ = zf(ctxIter->featureValues(), sums[i], zs[i], f,
 				alphas[f]);
 			
 			double lg = ctxIter->prob() * log(newZ / zs[i]);
@@ -139,23 +136,18 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 			continue;
 		}
 
-		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		size_t j = 0;
-		while (evtIter != ctxIter->events().end())
+		FeatureValues const &featureVals = ctxIter->featureValues();
+		for (int j = 0; j < featureVals.outerSize(); ++j)
 		{
 			// This event can not have active features if its probability is zero.
-			if (p_yx(sums[i][j], zs[i]) == 0.0) {
-				++evtIter; ++j;
+			if (p_yx(sums[i][j], zs[i]) == 0.0)
 				continue;
-			}
 
-			for (FeatureVector::InnerIterator fIter(evtIter->features());
+			for (FeatureValues::InnerIterator fIter(featureVals, j);
 					fIter; ++fIter)
 				if (excludedFeatures.find(fIter.index()) == excludedFeatures.end() &&
 						fIter.value() != 0.0)
 					active.insert(fIter.index());
-			
-			++evtIter; ++j;
 		}
 		
 		ctxActive.push_back(active);
@@ -174,10 +166,10 @@ ExpectedValues fsqueeze::expFeatureValues(DataSet const &dataSet)
 		fIter != dataSet.features().end(); ++fIter)
 	{
 		double expVal = 0.0;
-		for (std::vector<std::pair<Event const *, double> >::const_iterator occIter =
+		for (std::vector<std::pair<double, double> >::const_iterator occIter =
 				fIter->second.begin(); occIter != fIter->second.end();
 				++occIter)
-			expVal += occIter->first->prob() * occIter->second;
+			expVal += occIter->first * occIter->second;
 		expVals[fIter->first] = expVal;
 	}
 	
@@ -194,17 +186,15 @@ ExpectedValues fsqueeze::expModelFeatureValues(
 	size_t i = 0;
 	while (ctxIter != dataSet.contexts().end())
 	{
-		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		size_t j = 0;
-		while (evtIter != ctxIter->events().end())
+		FeatureValues const &featureVals = ctxIter->featureValues();
+		
+		for (int j = 0; j < featureVals.outerSize(); ++j)
 		{
 			double pyx = p_yx(sums[i][j], zs[i]);
 			
-			for (FeatureVector::InnerIterator fIter(evtIter->features());
+			for (FeatureValues::InnerIterator fIter(featureVals, j);
 					fIter; ++fIter)
 				expVals[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
-			
-			++evtIter;
 		}
 		
 		++ctxIter; ++i;
@@ -220,7 +210,7 @@ Zs fsqueeze::initialZs(DataSet const &ds)
 	
 	Zs zs(nContexts);
 	for (size_t i = 0; i < nContexts; ++i)
-		zs[i] = contexts[i].events().size();
+		zs[i] = contexts[i].eventProbs().size();
 	
 	return zs;
 }
@@ -235,21 +225,15 @@ Sums fsqueeze::initialSums(DataSet const &ds)
 	return sums;
 }
 
-double fsqueeze::zf(EventVector const &events, Sum const &ctxSums, double z,
-	size_t feature, double alpha)
+double fsqueeze::zf(FeatureValues const &featureValues, Sum const &ctxSums,
+	double z, size_t feature, double alpha)
 {
-	double newZ = z;
-
-	EventVector::const_iterator evtIter = events.begin();
-	size_t i = 0;
-	while (evtIter != events.end())
+	for (int i = 0; i < featureValues.outerSize(); ++i)
 	{
-		double fVal = evtIter->features().coeff(feature);
+		double fVal = featureValues.coeff(i, feature);
 		if (fVal != 0.0)
-			newZ = newZ - ctxSums[i] + ctxSums[i] * exp(alpha * fVal);
-
-		++evtIter; ++i;
+			z = z - ctxSums[i] + ctxSums[i] * exp(alpha * fVal);
 	}
 	
-	return newZ;
+	return z;
 }

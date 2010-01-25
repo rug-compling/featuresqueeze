@@ -22,18 +22,22 @@
 
 #include <vector>
 
-#include "Event.hh"
+#include <Eigen/Core>
+#include <Eigen/Sparse>
 
 namespace fsqueeze {
 
-typedef std::vector<Event> EventVector;
+typedef Eigen::VectorXd EventProbs;
+typedef Eigen::DynamicSparseMatrix<double, Eigen::RowMajor> FeatureValues;
 
 class Context {
 public:
 	/**
 	 * Construct a context.
 	 */
-	Context(double prob, EventVector const &events) : d_prob(prob), d_events(events) {}
+	Context(double prob, EventProbs const &eventProbs,
+		FeatureValues const &featureValues)
+	: d_prob(prob), d_eventProbs(eventProbs), d_featureValues(featureValues) {}
 	
 	/**
 	 * Return the context probability.
@@ -49,15 +53,26 @@ public:
 	/**
 	 * Get the event vector.
 	 */
-	EventVector const &events() const;
+	EventProbs const &eventProbs() const;
 	
 	/**
 	 * Use a new event vector.
 	 */
-	void events(EventVector const &events);
+	void eventProbs(EventProbs const &eventProbs);
+	
+	/**
+	 * Get the feature values.
+	 */
+	FeatureValues const &featureValues() const;
+	
+	/**
+	 * Set feature values.
+	 */
+		void featureValues(FeatureValues const &featureValues);
 private:
 	double d_prob;
-	EventVector d_events;
+	EventProbs d_eventProbs;
+	FeatureValues d_featureValues;
 };
 
 inline double Context::prob() const
@@ -70,15 +85,26 @@ inline void Context::prob(double newProb)
 	d_prob = newProb;
 }
 
-inline EventVector const &Context::events() const
+inline EventProbs const &Context::eventProbs() const
 {
-	return d_events;
+	return d_eventProbs;
 }
 
-inline void Context::events(EventVector const &events)
+inline void Context::eventProbs(EventProbs const &eventProbs)
 {
-	d_events = events;
+	d_eventProbs = eventProbs;
 }
+
+inline FeatureValues const &Context::featureValues() const
+{
+	return d_featureValues;
+}
+
+inline void Context::featureValues(FeatureValues const &featureValues)
+{
+	d_featureValues = featureValues;
+}
+
 
 }
 

@@ -136,12 +136,12 @@ inline double p_yx(double sum, double z)
  * Calculate an updated Z(x) value as the result of changing the weight
  * of a feature form a zero to a non-zero value.
  */
-double zf(EventVector const &events, Sum const &ctxSums, double z,
+double zf(FeatureValues const &featureValues, Sum const &ctxSums, double z,
 	size_t feature, double alpha);
 
 inline Sum makeSumVector::operator()(Context const &context) const
 {
-	return Sum::Ones(context.events().size());
+	return Sum::Ones(context.eventProbs().size());
 }
 
 }

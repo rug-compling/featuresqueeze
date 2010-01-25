@@ -53,33 +53,24 @@ void updateGradient(DataSet const &dataSet,
 	size_t i = 0;
 	while(ctxIter != dataSet.contexts().end())
 	{
-		double newZ = zf(ctxIter->events(), sums[i], zs[i], feature, alpha);
+		FeatureValues const &featureVals = ctxIter->featureValues();
+		
+		double newZ = zf(featureVals, sums[i], zs[i], feature, alpha);
 		
 		Sum newSums(sums[i]);
 		double p_fx = 0.0;
-		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		size_t j = 0;
-		while(evtIter != ctxIter->events().end())
+		for (int j = 0; j < featureVals.outerSize(); ++j)
 		{
-			double fVal = evtIter->features().coeff(feature);
-			
+			double fVal = featureVals.coeff(j, feature);
 			newSums[j] *= exp(alpha * fVal);
-			
 			p_fx += p_yx(newSums[j], newZ) * fVal;
-			
-			++evtIter; ++j;
 		}
 		
 		double gppSum = 0.0;
-		evtIter = ctxIter->events().begin();
-		j = 0;
-		while (evtIter != ctxIter->events().end())
+		for (int j = 0; j < featureVals.outerSize(); ++j)
 		{
-			double fVal = evtIter->features().coeff(feature);
-			
+			double fVal = featureVals.coeff(j, feature);
 			gppSum += p_yx(newSums[j], newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
-			
-			++evtIter; ++j;
 		}
 		
 		*gp = *gp - ctxIter->prob() * p_fx;
@@ -109,34 +100,28 @@ void updateGradients(DataSet const &dataSet,
 			if (unconvergedFeatures.find(*fsIter) == unconvergedFeatures.end())
 				continue;
 
-			double newZ = zf(ctxIter->events(), sums[i], zs[i], *fsIter,
+			FeatureValues const &featureVals = ctxIter->featureValues();
+
+			double newZ = zf(featureVals, sums[i], zs[i], *fsIter,
 				alphas[*fsIter]);
 			
 			Sum newSums(sums[i]);
 			double p_fx = 0.0;
-			EventVector::const_iterator evtIter = ctxIter->events().begin();
-			size_t j = 0;
-			while (evtIter != ctxIter->events().end())
+			for (int j = 0; j < featureVals.outerSize(); ++j)
 			{
-				double fVal = evtIter->features().coeff(*fsIter);
+				double fVal = featureVals.coeff(j, *fsIter);
 				
-				newSums[j] *= exp(alphas[*fsIter] * fVal);
-				
+				if (fVal != 0.0)
+					newSums[j] *= exp(alphas[*fsIter] * fVal);
+
 				p_fx += p_yx(newSums[j], newZ) * fVal;
-				
-				++evtIter; ++j;
 			}
 			
-			double gppSum = 0.0;
-			evtIter = ctxIter->events().begin();
-			j = 0;
-			while (evtIter != ctxIter->events().end())
+			double gppSum = 0.0;	
+			for (int j = 0; j < featureVals.outerSize(); ++j)
 			{
-				double fVal = evtIter->features().coeff(*fsIter);
-				
+				double fVal = featureVals.coeff(j, *fsIter);
 				gppSum += p_yx(newSums[j], newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
-				
-				++evtIter; ++j;
 			}
 			
 			(*gp)[*fsIter] = (*gp)[*fsIter] - ctxIter->prob() * p_fx;

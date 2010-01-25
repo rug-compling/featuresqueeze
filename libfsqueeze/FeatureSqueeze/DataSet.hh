@@ -32,13 +32,12 @@
 #include <tr1/unordered_set>
 
 #include "Context.hh"
-#include "Event.hh"
 
 namespace fsqueeze {
 
 typedef std::vector<Context> ContextVector;
 typedef std::tr1::unordered_map<size_t,
-	std::vector<std::pair<Event const *, double> > > DsFeatureMap;
+	std::vector<std::pair<double, double> > > DsFeatureMap;
 
 /**
  * This class represents datasets to be used for feature selection. Datasets
@@ -87,7 +86,8 @@ private:
 	void normalize();
 	void normalizeContexts(double ctxSum);
 	void normalizeEvents(double ctxSum);
-	static Event readEvent(std::string const &eventLine);
+	static std::pair<double, Eigen::SparseVector<double> >
+		readEvent(std::string const &eventLine);
 	static Context readContext(std::istream &iss);
 	void removeStaticFeatures();
 	void sumContexts();
@@ -95,15 +95,6 @@ private:
 	ContextVector d_contexts;
 	DsFeatureMap d_features;
 	int d_nFeatures;
-};
-
-class NormalizeEvent
-{
-public:
-	NormalizeEvent(double ctxSum) : d_ctxSum(ctxSum) {}
-	Event operator()(Event const &event) const;
-private:
-	double d_ctxSum;
 };
 
 template <typename T>
@@ -134,12 +125,6 @@ inline DsFeatureMap const &DataSet::features() const
 inline int DataSet::nFeatures() const
 {
 	return d_nFeatures;
-}
-
-
-inline Event NormalizeEvent::operator()(Event const &event) const
-{
-	return Event(event.prob() / d_ctxSum, event.features());
 }
 
 template <typename T>
