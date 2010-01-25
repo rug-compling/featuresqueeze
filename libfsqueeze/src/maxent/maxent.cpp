@@ -79,7 +79,7 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 		++ctxIter; ++ctxSumIter; ++zIter;
 	}
 	
-	return gainSum + alpha * expFeatureValues.coeff(feature);
+	return gainSum + alpha * expFeatureValues[feature];
 }
 
 // Calculate the gain of adding each feature.
@@ -182,7 +182,7 @@ ExpectedValues fsqueeze::expFeatureValues(DataSet const &dataSet)
 				fIter->second.begin(); occIter != fIter->second.end();
 				++occIter)
 			expVal += occIter->first->prob() * occIter->second;
-		expVals.coeffRef(fIter->first) = expVal;
+		expVals[fIter->first] = expVal;
 	}
 	
 	return expVals;
@@ -207,7 +207,7 @@ ExpectedValues fsqueeze::expModelFeatureValues(
 			
 			for (FeatureVector::InnerIterator fIter(evtIter->features());
 					fIter; ++fIter)
-				expVals.coeffRef(fIter.index()) += ctxIter->prob() * pyx * fIter.value();
+				expVals[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
 			
 			++evtIter; ++sumIter;
 		}

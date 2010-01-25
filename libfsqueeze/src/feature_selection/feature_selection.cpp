@@ -309,7 +309,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 
 	size_t maxF = gains.begin()->first;
 	double maxGain = gains.begin()->second;
-	double maxAlpha = a.coeff(maxF);
+	double maxAlpha = a[maxF];
 
 	adjustModel(dataSet, maxF, maxAlpha, sums, zs);
 		

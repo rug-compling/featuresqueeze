@@ -46,7 +46,6 @@ inline std::ostream &operator<<(std::ostream &out, std::pair<size_t, double> con
 
 namespace fsqueeze {
 
-//typedef Eigen::VectorXd A_f;
 typedef std::tr1::unordered_map<size_t, double> R_f;
 typedef Eigen::VectorXd Gp;
 typedef Eigen::VectorXd Gpp;
