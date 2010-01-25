@@ -83,6 +83,9 @@ int main(int argc, char *argv[])
 	cerr << "done!" << endl;
 	
 	fsqueeze::Logger logger(cout, cerr);
+	logger.error() << "Dynamic features: "<< ds.features().size() << "/" <<
+		ds.nFeatures() << endl;
+	
 	if (programOptions.option('f'))
 		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
 	else
