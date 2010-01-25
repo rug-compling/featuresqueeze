@@ -36,9 +36,9 @@ namespace fsqueeze
 
 typedef Eigen::VectorXd FeatureWeights;
 typedef Eigen::VectorXd ExpectedValues;
-typedef std::vector<std::vector<double> > Sums;
-typedef std::vector<double> Sum;
-typedef std::vector<double> Zs;
+typedef Eigen::VectorXd Sum;
+typedef std::vector<Sum> Sums;
+typedef Eigen::VectorXd Zs;
 typedef std::tr1::unordered_set<size_t> FeatureSet;
 
 /*
@@ -64,7 +64,7 @@ typedef std::tr1::unordered_map<size_t, double> GainMap;
 
 struct makeSumVector
 {
-	std::vector<double> operator()(Context const &context) const;
+	Sum operator()(Context const &context) const;
 };
 
 /*
@@ -77,7 +77,7 @@ FeatureSet activeFeatures(std::vector<FeatureSet> const &contextActiveFeatures);
  * we assume that the previous value of alpha was zero.
  */
 void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
-	std::vector<std::vector<double> > *sums, std::vector<double> *zs);
+	Sums *sums, Zs *zs);
 
 /*
  * Calculate the gain of a model after changing a feature weight from zero
@@ -116,13 +116,13 @@ ExpectedValues expModelFeatureValues(DataSet const &dataSet,
 /**
  * Construct a vector of Z(x) normalization values representing a uniform model.
  */
-std::vector<double> initialZs(DataSet const &ds);
+Zs initialZs(DataSet const &ds);
 
 /**
  * Construct a vector of unnormalized event 'probabilities' representing a
  * uniform model.
  */
-std::vector<std::vector<double> > initialSums(DataSet const &ds);
+Sums initialSums(DataSet const &ds);
 
 /**
  * Calculate the probability p(y|x) based on sum and normalization z.
@@ -139,11 +139,10 @@ inline double p_yx(double sum, double z)
 double zf(EventVector const &events, Sum const &ctxSums, double z,
 	size_t feature, double alpha);
 
-inline std::vector<double> makeSumVector::operator()(Context const &context) const
+inline Sum makeSumVector::operator()(Context const &context) const
 {
-	return std::vector<double>(context.events().size(), 1.0);
+	return Sum::Ones(context.events().size());
 }
-
 
 }
 

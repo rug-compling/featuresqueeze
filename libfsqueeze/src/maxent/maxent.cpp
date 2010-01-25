@@ -32,29 +32,28 @@ FeatureSet fsqueeze::activeFeatures(vector<FeatureSet> const &contextActiveFeatu
 }
 
 void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
-	double alpha, vector<vector<double> > *sums, vector<double> *zs)
+	double alpha, Sums *sums, Zs *zs)
 {
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::iterator ctxSumIter = sums->begin();
-	Zs::iterator zIter = zs->begin();
+	size_t i = 0;
 	while (ctxIter != dataSet.contexts().end())
 	{
 		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		Sum::iterator sumIter = ctxSumIter->begin();
+		size_t j = 0;
 		while (evtIter != ctxIter->events().end())
 		{
 			double fVal = evtIter->features().coeff(feature);
 			if (fVal != 0.0)
 			{
-				*zIter -= *sumIter;
-				*sumIter *= exp(alpha * fVal);
-				*zIter += *sumIter;
+				(*zs)[i] -= (*sums)[i][j];
+				(*sums)[i][j] *= exp(alpha * fVal);
+				(*zs)[i] += (*sums)[i][j];
 			}
 			
-			++evtIter; ++sumIter;
+			++evtIter; ++j;
 		}
 		
-		++ctxIter; ++ctxSumIter; ++zIter;
+		++ctxIter; ++i;
 	}
 }
 
@@ -68,15 +67,14 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 {
 	double gainSum = 0.0;
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
+	size_t i = 0;
 	while(ctxIter != dataSet.contexts().end())
 	{
-		double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
-		double lg = ctxIter->prob() * log(newZ / *zIter);
+		double newZ = zf(ctxIter->events(), sums[i], zs[i], feature, alpha);
+		double lg = ctxIter->prob() * log(newZ / zs[i]);
 		gainSum -= lg;
 		
-		++ctxIter; ++ctxSumIter; ++zIter;
+		++ctxIter; ++i;
 	}
 	
 	return gainSum + alpha * expFeatureValues[feature];
@@ -95,8 +93,7 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 	
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
 	vector<FeatureSet>::const_iterator ctxFsIter = contextActiveFeatures.begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
+	size_t i = 0;
 	while (ctxIter != dataSet.contexts().end())
 	{
 		for (FeatureSet::const_iterator fsIter = ctxFsIter->begin();
@@ -104,15 +101,15 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 		{
 			int f = *fsIter;
 
-			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, f,
+			double newZ = zf(ctxIter->events(), sums[i], zs[i], f,
 				alphas[f]);
 			
-			double lg = ctxIter->prob() * log(newZ / *zIter);
+			double lg = ctxIter->prob() * log(newZ / zs[i]);
 			
 			gainSum[f] -= lg;
 		}
 		
-		++ctxIter; ++ctxFsIter; ++ctxSumIter; ++zIter;
+		++ctxIter; ++ctxFsIter; ++i;
 	}
 	
 	OrderedGains gains;
@@ -129,8 +126,7 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 	vector<FeatureSet> ctxActive;
 	
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
+	size_t i = 0;
 	while (ctxIter != dataSet.contexts().end())
 	{
 		FeatureSet active;
@@ -139,17 +135,17 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 		if (ctxIter->prob() == 0.0)
 		{
 			ctxActive.push_back(active);
-			++ctxIter; ++ctxSumIter; ++zIter;	
+			++ctxIter; ++i;	
 			continue;
 		}
 
 		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		Sum::const_iterator sumIter = ctxSumIter->begin();
+		size_t j = 0;
 		while (evtIter != ctxIter->events().end())
 		{
 			// This event can not have active features if its probability is zero.
-			if (p_yx(*sumIter, *zIter) == 0.0) {
-				++evtIter; ++sumIter;
+			if (p_yx(sums[i][j], zs[i]) == 0.0) {
+				++evtIter; ++j;
 				continue;
 			}
 
@@ -159,12 +155,12 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 						fIter.value() != 0.0)
 					active.insert(fIter.index());
 			
-			++evtIter; ++sumIter;
+			++evtIter; ++j;
 		}
 		
 		ctxActive.push_back(active);
 		
-		++ctxIter; ++ctxSumIter; ++zIter;
+		++ctxIter; ++i;
 	}
 	
 	return ctxActive;
@@ -195,46 +191,43 @@ ExpectedValues fsqueeze::expModelFeatureValues(
 	ExpectedValues expVals(dataSet.nFeatures());
 
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
+	size_t i = 0;
 	while (ctxIter != dataSet.contexts().end())
 	{
 		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		Sum::const_iterator sumIter = ctxSumIter->begin();
+		size_t j = 0;
 		while (evtIter != ctxIter->events().end())
 		{
-			double pyx = p_yx(*sumIter, *zIter);
+			double pyx = p_yx(sums[i][j], zs[i]);
 			
 			for (FeatureVector::InnerIterator fIter(evtIter->features());
 					fIter; ++fIter)
 				expVals[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
 			
-			++evtIter; ++sumIter;
+			++evtIter;
 		}
 		
-		++ctxIter; ++ctxSumIter; ++zIter;
+		++ctxIter; ++i;
 	}
 	
 	return expVals;
 }
 
-vector<double> fsqueeze::initialZs(DataSet const &ds)
+Zs fsqueeze::initialZs(DataSet const &ds)
 {
-	Zs zs;
-
-	transform(ds.contexts().begin(), ds.contexts().end(), back_inserter(zs),
-		compose_f_gx(
-			mem_fun_ref(&EventVector::size),
-			mem_fun_ref<EventVector const &>(&Context::events)
-		)
-	);
+	size_t nContexts = ds.contexts().size();
+	ContextVector const &contexts = ds.contexts();
+	
+	Zs zs(nContexts);
+	for (size_t i = 0; i < nContexts; ++i)
+		zs[i] = contexts[i].events().size();
 	
 	return zs;
 }
 
-vector<vector<double> > fsqueeze::initialSums(DataSet const &ds)
+Sums fsqueeze::initialSums(DataSet const &ds)
 {
-	vector<vector<double> > sums;
+	Sums sums;
 
 	transform(ds.contexts().begin(), ds.contexts().end(), back_inserter(sums),
 		makeSumVector());
@@ -248,14 +241,14 @@ double fsqueeze::zf(EventVector const &events, Sum const &ctxSums, double z,
 	double newZ = z;
 
 	EventVector::const_iterator evtIter = events.begin();
-	Sum::const_iterator sumIter = ctxSums.begin();
+	size_t i = 0;
 	while (evtIter != events.end())
 	{
 		double fVal = evtIter->features().coeff(feature);
 		if (fVal != 0.0)
-			newZ = newZ - *sumIter + *sumIter * exp(alpha * fVal);
+			newZ = newZ - ctxSums[i] + ctxSums[i] * exp(alpha * fVal);
 
-		++evtIter; ++sumIter;
+		++evtIter; ++i;
 	}
 	
 	return newZ;

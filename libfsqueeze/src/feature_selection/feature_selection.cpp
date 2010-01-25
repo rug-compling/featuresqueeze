@@ -20,11 +20,12 @@
 #include "feature_selection.ih"
 
 // R(f)
-R_f r_f(FeatureSet const &features,
+R_f r_f(int nFeatures,
+	FeatureSet const &features,
 	ExpectedValues const &expFeatureValues,
 	ExpectedValues const &expModelFeatureValues)
 {
-	R_f r;
+	R_f r = R_f::Zero(nFeatures);
 	
 	for (FeatureSet::const_iterator iter = features.begin(); iter != features.end(); ++iter)
 		r[*iter] = expFeatureValues[*iter] <=
@@ -49,47 +50,42 @@ void updateGradient(DataSet const &dataSet,
 	double *gpp)
 {
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
+	size_t i = 0;
 	while(ctxIter != dataSet.contexts().end())
 	{
-		double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, feature, alpha);
+		double newZ = zf(ctxIter->events(), sums[i], zs[i], feature, alpha);
 		
-		Sum newSums(ctxSumIter->size(), 0);
+		Sum newSums(sums[i]);
 		double p_fx = 0.0;
 		EventVector::const_iterator evtIter = ctxIter->events().begin();
-		Sum::const_iterator sumIter = ctxSumIter->begin();
-		Sum::iterator newSumIter = newSums.begin();
+		size_t j = 0;
 		while(evtIter != ctxIter->events().end())
 		{
 			double fVal = evtIter->features().coeff(feature);
 			
-			double newSum = *sumIter * exp(alpha * fVal);
-			*newSumIter = newSum;
+			newSums[j] *= exp(alpha * fVal);
 			
-			p_fx += p_yx(newSum, newZ) * fVal;
+			p_fx += p_yx(newSums[j], newZ) * fVal;
 			
-			++evtIter; ++sumIter; ++newSumIter;
+			++evtIter; ++j;
 		}
 		
 		double gppSum = 0.0;
 		evtIter = ctxIter->events().begin();
-		newSumIter = newSums.begin();
+		j = 0;
 		while (evtIter != ctxIter->events().end())
 		{
 			double fVal = evtIter->features().coeff(feature);
 			
-			double newSum = *newSumIter;
+			gppSum += p_yx(newSums[j], newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
 			
-			gppSum += p_yx(newSum, newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
-			
-			++evtIter; ++newSumIter;
+			++evtIter; ++j;
 		}
 		
 		*gp = *gp - ctxIter->prob() * p_fx;
 		*gpp = *gpp - ctxIter->prob() * gppSum;
 		
-		++ctxIter; ++ctxSumIter; ++zIter;
+		++ctxIter; ++i;
 	}
 }
 
@@ -103,8 +99,7 @@ void updateGradients(DataSet const &dataSet,
 	Gpp *gpp)
 {
 	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	Sums::const_iterator ctxSumIter = sums.begin();
-	Zs::const_iterator zIter = zs.begin();
+	size_t i = 0;
 	vector<FeatureSet>::const_iterator activeFsIter = activeFeatures.begin();
 	while (ctxIter != dataSet.contexts().end())
 	{
@@ -114,46 +109,41 @@ void updateGradients(DataSet const &dataSet,
 			if (unconvergedFeatures.find(*fsIter) == unconvergedFeatures.end())
 				continue;
 
-			double newZ = zf(ctxIter->events(), *ctxSumIter, *zIter, *fsIter,
+			double newZ = zf(ctxIter->events(), sums[i], zs[i], *fsIter,
 				alphas[*fsIter]);
 			
-			Sum newSums(ctxSumIter->size(), 0);
+			Sum newSums(sums[i]);
 			double p_fx = 0.0;
 			EventVector::const_iterator evtIter = ctxIter->events().begin();
-			Sum::const_iterator sumIter = ctxSumIter->begin();
-			Sum::iterator newSumIter = newSums.begin();
+			size_t j = 0;
 			while (evtIter != ctxIter->events().end())
 			{
 				double fVal = evtIter->features().coeff(*fsIter);
 				
-				double newSum = *sumIter * exp(alphas[*fsIter] * fVal);
-				*newSumIter = newSum;
+				newSums[j] *= exp(alphas[*fsIter] * fVal);
 				
-				p_fx += p_yx(newSum, newZ) * fVal;
+				p_fx += p_yx(newSums[j], newZ) * fVal;
 				
-				++evtIter; ++sumIter; ++newSumIter;
+				++evtIter; ++j;
 			}
 			
 			double gppSum = 0.0;
 			evtIter = ctxIter->events().begin();
-			sumIter = ctxSumIter->begin();
-			newSumIter = newSums.begin();
+			j = 0;
 			while (evtIter != ctxIter->events().end())
 			{
 				double fVal = evtIter->features().coeff(*fsIter);
 				
-				double newSum = *newSumIter;
+				gppSum += p_yx(newSums[j], newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
 				
-				gppSum += p_yx(newSum, newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
-				
-				++evtIter; ++sumIter; ++newSumIter;
+				++evtIter; ++j;
 			}
 			
 			(*gp)[*fsIter] = (*gp)[*fsIter] - ctxIter->prob() * p_fx;
 			(*gpp)[*fsIter] = (*gpp)[*fsIter] - ctxIter->prob() * gppSum;
 		}
 		
-		++ctxIter; ++ctxSumIter; ++zIter; ++activeFsIter;
+		++ctxIter; ++i; ++activeFsIter;
 	}
 }
 
@@ -185,7 +175,7 @@ FeatureSet updateAlphas(FeatureSet const &unconvergedFeatures,
 		fIter != unconvergedFeatures.end(); ++fIter)
 	{
 		int f = *fIter;
-		double rF = r.find(f)->second;
+		double rF = r[f];
 		double oldAlpha = (*alphas)[f];
 		double newAlpha = oldAlpha + rF * log(1 - rF * (gp[f] / gpp[f]));
 		double delta = fabs(oldAlpha - newAlpha);
@@ -292,7 +282,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 	vector<FeatureSet> ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, *sums, *zs);
 	FeatureSet unconvergedFs = activeFeatures(ctxActiveFs);
 
-	R_f r = r_f(unconvergedFs, expVals, expModelVals);
+	R_f r = r_f(dataSet.nFeatures(), unconvergedFs, expVals, expModelVals);
 	
 	FeatureWeights a = a_f(dataSet.nFeatures());
 
