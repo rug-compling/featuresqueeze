@@ -49,11 +49,12 @@ void updateGradient(DataSet const &dataSet,
 	double *gp,
 	double *gpp)
 {
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	size_t i = 0;
-	while(ctxIter != dataSet.contexts().end())
+	ContextVector const &contexts = dataSet.contexts();
+	
+	#pragma omp parallel for
+	for (int i = 0; i < static_cast<int>(contexts.size()); ++i)
 	{
-		FeatureValues const &featureVals = ctxIter->featureValues();
+		FeatureValues const &featureVals = contexts[i].featureValues();
 		
 		double newZ = zf(featureVals, sums[i], zs[i], feature, alpha);
 		
@@ -72,11 +73,12 @@ void updateGradient(DataSet const &dataSet,
 			double fVal = featureVals.coeff(j, feature);
 			gppSum += p_yx(newSums[j], newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
 		}
-		
-		*gp = *gp - ctxIter->prob() * p_fx;
-		*gpp = *gpp - ctxIter->prob() * gppSum;
-		
-		++ctxIter; ++i;
+
+		#pragma omp critical
+		{		
+			*gp = *gp - contexts[i].prob() * p_fx;
+			*gpp = *gpp - contexts[i].prob() * gppSum;
+		}
 	}
 }
 
@@ -89,18 +91,18 @@ void updateGradients(DataSet const &dataSet,
 	Gp *gp,
 	Gpp *gpp)
 {
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	size_t i = 0;
-	vector<FeatureSet>::const_iterator activeFsIter = activeFeatures.begin();
-	while (ctxIter != dataSet.contexts().end())
+	ContextVector const &contexts = dataSet.contexts();
+	
+	#pragma omp parallel for
+	for (int i = 0; i < static_cast<int>(contexts.size()); ++i)
 	{
-		for (FeatureSet::const_iterator fsIter = activeFsIter->begin(); fsIter != activeFsIter->end();
-			++fsIter)
+		for (FeatureSet::const_iterator fsIter = activeFeatures[i].begin();
+			fsIter != activeFeatures[i].end(); ++fsIter)
 		{
 			if (unconvergedFeatures.find(*fsIter) == unconvergedFeatures.end())
 				continue;
 
-			FeatureValues const &featureVals = ctxIter->featureValues();
+			FeatureValues const &featureVals = contexts[i].featureValues();
 
 			double newZ = zf(featureVals, sums[i], zs[i], *fsIter,
 				alphas[*fsIter]);
@@ -124,11 +126,12 @@ void updateGradients(DataSet const &dataSet,
 				gppSum += p_yx(newSums[j], newZ) * (pow(fVal, 2) - 2 * fVal * p_fx + pow(p_fx, 2));
 			}
 			
-			(*gp)[*fsIter] = (*gp)[*fsIter] - ctxIter->prob() * p_fx;
-			(*gpp)[*fsIter] = (*gpp)[*fsIter] - ctxIter->prob() * gppSum;
+			#pragma omp critical
+			{
+				(*gp)[*fsIter] = (*gp)[*fsIter] - contexts[i].prob() * p_fx;
+				(*gpp)[*fsIter] = (*gpp)[*fsIter] - contexts[i].prob() * gppSum;
+			}
 		}
-		
-		++ctxIter; ++i; ++activeFsIter;
 	}
 }
 

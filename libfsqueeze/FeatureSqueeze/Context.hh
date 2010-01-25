@@ -68,7 +68,7 @@ public:
 	/**
 	 * Set feature values.
 	 */
-		void featureValues(FeatureValues const &featureValues);
+	void featureValues(FeatureValues const &featureValues);
 private:
 	double d_prob;
 	EventProbs d_eventProbs;
