@@ -19,6 +19,12 @@
 
 #include "maxent.ih"
 
+// NOTE
+//
+// Currently, only one loop here has an OpenMP annotation. Most other
+// cases would require a critical section in an inner loop. So, let's
+// not do it without proper benchmarking.
+
 // Active features in at least one context.
 FeatureSet fsqueeze::activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 {
@@ -63,15 +69,16 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 )
 {
 	double gainSum = 0.0;
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	size_t i = 0;
-	while(ctxIter != dataSet.contexts().end())
+	ContextVector const &contexts = dataSet.contexts();
+
+	#pragma omp parallel for
+	for (int i = 0; i < static_cast<int>(dataSet.contexts().size()); ++i)
 	{
-		double newZ = zf(ctxIter->featureValues(), sums[i], zs[i], feature, alpha);
-		double lg = ctxIter->prob() * log(newZ / zs[i]);
-		gainSum -= lg;
+		double newZ = zf(contexts[i].featureValues(), sums[i], zs[i], feature, alpha);
+		double lg = contexts[i].prob() * log(newZ / zs[i]);
 		
-		++ctxIter; ++i;
+		#pragma omp atomic
+		gainSum -= lg;
 	}
 	
 	return gainSum + alpha * expFeatureValues[feature];
@@ -88,25 +95,22 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 {
 	GainMap gainSum;
 	
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	vector<FeatureSet>::const_iterator ctxFsIter = contextActiveFeatures.begin();
-	size_t i = 0;
-	while (ctxIter != dataSet.contexts().end())
+	ContextVector const &contexts = dataSet.contexts();
+	
+	for (int i = 0; i < static_cast<int>(dataSet.contexts().size()); ++i)
 	{
-		for (FeatureSet::const_iterator fsIter = ctxFsIter->begin();
-			fsIter != ctxFsIter->end(); ++fsIter)
+		for (FeatureSet::const_iterator fsIter = contextActiveFeatures[i].begin();
+			fsIter != contextActiveFeatures[i].end(); ++fsIter)
 		{
 			int f = *fsIter;
 
-			double newZ = zf(ctxIter->featureValues(), sums[i], zs[i], f,
+			double newZ = zf(contexts[i].featureValues(), sums[i], zs[i], f,
 				alphas[f]);
 			
-			double lg = ctxIter->prob() * log(newZ / zs[i]);
+			double lg = contexts[i].prob() * log(newZ / zs[i]);
 			
 			gainSum[f] -= lg;
-		}
-		
-		++ctxIter; ++ctxFsIter; ++i;
+		}		
 	}
 	
 	OrderedGains gains;
