@@ -1,7 +1,13 @@
 include Makefile.defs
 
 CXXFLAGS=-O3 -Wall -Ilibfsqueeze -I$(EIGEN2PREFIX) -Wno-unknown-pragmas
+LINKFLAGS=-O3
 CXX=g++
+
+ifeq ($(USE_OPENMP),yes)
+	CXXFLAGS+=-fopenmp
+	LINKFLAGS+=-fopenmp
+endif
 
 LIBFSQUEEZE_SOURCES=\
 	libfsqueeze/src/DataSet/DataSet.cpp \
@@ -23,7 +29,7 @@ libfsqueeze.a: $(LIBFSQUEEZE_OBJECTS)
 	ar cr $@ $(LIBFSQUEEZE_OBJECTS)
 
 fsqueeze: $(FSQUEEZE_OBJECTS) libfsqueeze.a
-	$(CXX) -O3 -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
+	$(CXX) $(LINKFLAGS) -o $@ $(FSQUEEZE_OBJECTS) libfsqueeze.a
 
 clean:
 	rm -f libfsqueeze.a fsqueeze
