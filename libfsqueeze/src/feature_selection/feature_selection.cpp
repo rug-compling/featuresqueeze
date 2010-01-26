@@ -310,7 +310,8 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	ExpectedValues expVals = expFeatureValues(dataSet);
 	
 	OrderedGains prevGains;
-	while(selectedFeatures.size() < nFeatures)	
+	while(selectedFeatures.size() < nFeatures &&
+		selectedFeatures.size() < dataSet.features().size())	
 	{
 		OrderedGains gains;
 		if (detectOverlap)
@@ -431,7 +432,8 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	logger.message() << selected.first << "\t" << selected.second <<
 		"\t" << selected.third << "\n";
 	
-	while(selectedFeatures.size() < nFeatures)	
+	while(selectedFeatures.size() < nFeatures &&
+		selectedFeatures.size() < dataSet.features().size())	
 	{
 		fastSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
 			&selectedFeatures, &selectedFeatureAlphas, &gains);
