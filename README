@@ -15,6 +15,9 @@ featuresqueeze also implements a fast feature selection method, that
 assumes that gains of features rarely improve when a feature is added to
 the model [2].
 
+This program has been developed for compacting models for the Alpino
+fluency ranker for Dutch.
+
 Compilation
 -----------
 
