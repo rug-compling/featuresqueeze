@@ -31,6 +31,8 @@
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
+#include <Eigen/Core>
+
 #include "Context.hh"
 
 namespace fsqueeze {
@@ -38,6 +40,7 @@ namespace fsqueeze {
 typedef std::vector<Context> ContextVector;
 typedef std::tr1::unordered_map<size_t,
 	std::vector<std::pair<double, double> > > DsFeatureMap;
+typedef Eigen::VectorXi FeatureChangeFreqs;
 
 /**
  * This class represents datasets to be used for feature selection. Datasets
@@ -62,6 +65,8 @@ public:
 	 * Get contexts.
 	 */
 	ContextVector const &contexts() const;
+	
+	FeatureChangeFreqs dynamicFeatureFreqs() const;
 	
 	/**
 	 * Get dataset features.

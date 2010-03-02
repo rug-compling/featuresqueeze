@@ -30,6 +30,7 @@
 #include <Eigen/Core>
 
 #include "DataSet.hh"
+#include "util.hh"
 
 namespace fsqueeze
 {
@@ -44,20 +45,7 @@ typedef std::tr1::unordered_set<size_t> FeatureSet;
 /*
  * Function object for gain-based orderering (highest gain first).
  */
-struct GainLess
-{
-	bool operator()(std::pair<size_t, double> const &f1, std::pair<size_t, double> const &f2)
-	{
-		// Treat NaN as no gain.
-		double g1 = std::isnan(f1.second) ? 0.0 : f1.second;
-		double g2 = std::isnan(f2.second) ? 0.0 : f2.second;
-		
-		if (g1 == g2)
-			return f1.first < f2.first;
-		
-		return g1 > g2;
-	}
-};
+typedef PairReverseLess<double> GainLess;
 
 typedef std::set<std::pair<size_t, double>, GainLess> OrderedGains;
 typedef std::tr1::unordered_map<size_t, double> GainMap;

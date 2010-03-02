@@ -24,6 +24,7 @@
 #include "FeatureSqueeze/stringutil.hh"
 #include "FeatureSqueeze/DataSet.hh"
 #include "FeatureSqueeze/Logger.hh"
+#include "FeatureSqueeze/corr_selection.hh"
 #include "FeatureSqueeze/feature_selection.hh"
 
 #include "ProgramOptions.hh"
@@ -42,7 +43,7 @@ void usage(string const &programName)
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:fg:n:o");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:n:o");
 	
 	if (programOptions.arguments().size() != 1)
 	{
@@ -86,7 +87,9 @@ int main(int argc, char *argv[])
 	logger.error() << "Dynamic features: "<< ds.features().size() << "/" <<
 		ds.nFeatures() << endl;
 	
-	if (programOptions.option('f'))
+	if (programOptions.option('c'))
+		fsqueeze::corrFeatureSelection(ds, logger, nFeatures);
+	else if (programOptions.option('f'))
 		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
 	else
 		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,

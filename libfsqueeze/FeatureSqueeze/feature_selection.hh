@@ -32,8 +32,7 @@
 
 #include "DataSet.hh"
 #include "Logger.hh"
-
-#include "util.hh"
+#include "selection.hh"
 
 namespace std {
 
@@ -50,7 +49,6 @@ typedef Eigen::VectorXd R_f;
 typedef Eigen::VectorXd Gp;
 typedef Eigen::VectorXd Gpp;
 typedef std::tr1::unordered_map<size_t, double> GainDeltas;
-typedef std::vector<Triple<size_t, double, double> > SelectedFeatureAlphas;
 
 /**
  * Select features based on a dataset using the fast selection algorithm.

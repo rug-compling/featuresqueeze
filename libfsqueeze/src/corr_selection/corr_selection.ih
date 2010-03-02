@@ -1,0 +1,17 @@
+#include <cmath>
+#include <set>
+#include <utility>
+
+#include <tr1/unordered_set>
+
+#include <Eigen/Core>
+
+#include <FeatureSqueeze/Context.hh>
+#include <FeatureSqueeze/DataSet.hh>
+#include <FeatureSqueeze/corr_selection.hh>
+#include <FeatureSqueeze/util.hh>
+
+using namespace std;
+using namespace std::tr1;
+using namespace Eigen;
+using namespace fsqueeze;

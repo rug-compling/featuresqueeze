@@ -87,6 +87,40 @@ void DataSet::countFeatures()
 	++d_nFeatures;
 }
 
+FeatureChangeFreqs DataSet::dynamicFeatureFreqs() const
+{
+	FeatureChangeFreqs freqs(VectorXi::Zero(d_nFeatures));
+	
+	for (ContextVector::const_iterator ctxIter = d_contexts.begin();
+		ctxIter != d_contexts.end(); ++ctxIter)
+	{
+		FeatureValues const &fVals = ctxIter->featureValues();
+		
+		// Find all non-zero features for the current context.
+		unordered_set<size_t> ctxFs;
+		for (int i = 0; i < fVals.outerSize(); ++i)
+			for (FeatureValues::InnerIterator fIter(fVals, i); fIter; ++fIter)
+				ctxFs.insert(fIter.index());
+		
+		// Find all feature values
+		unordered_map<size_t, unordered_set<double> > ctxFVals;
+		for (int i = 0; i < fVals.outerSize(); ++i)
+			for (unordered_set<size_t>::const_iterator fIter = ctxFs.begin();
+				fIter != ctxFs.end(); ++fIter)
+			{
+				double coeff = fVals.coeff(i, *fIter);
+				ctxFVals[*fIter].insert(coeff);
+			}
+		
+		for (unordered_map<size_t, unordered_set<double> >::const_iterator iter = ctxFVals.begin();
+				iter != ctxFVals.end(); ++iter)
+			if (iter->second.size() > 1)
+				freqs[iter->first] += 1;
+	}
+
+	return freqs;
+}
+
 // Find 'dynamic' features. Dynamic features are features that do not retain the
 // same value within at least one context.
 unordered_set<size_t> DataSet::dynamicFeatures() const

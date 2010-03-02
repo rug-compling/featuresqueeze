@@ -38,6 +38,40 @@ Triple<T1, T2, T3> makeTriple(T1 first, T2 second, T3 third)
 	return Triple<T1, T2, T3>(first, second, third);
 }
 
+// less for pairs (ordering: second - first)
+template <typename T>
+struct PairReverseLess
+{
+	bool operator()(std::pair<size_t, T> const &f1, std::pair<size_t, T> const &f2)
+	{
+		// Treat NaN as no gain.
+		T g1 = std::isnan(f1.second) ? 0.0 : f1.second;
+		T g2 = std::isnan(f2.second) ? 0.0 : f2.second;
+		
+		if (g1 == g2)
+			return f1.first < f2.first;
+		
+		return g1 > g2;
+	}
+};
+
+// Handle NaNs for doubles.
+template <>
+struct PairReverseLess<double>
+{
+	bool operator()(std::pair<size_t, double> const &f1, std::pair<size_t, double> const &f2)
+	{
+		// Treat NaN as no gain.
+		double g1 = std::isnan(f1.second) ? 0.0 : f1.second;
+		double g2 = std::isnan(f2.second) ? 0.0 : f2.second;
+		
+		if (g1 == g2)
+			return f1.first < f2.first;
+		
+		return g1 > g2;
+	}
+};
+
 }
 
 #endif // FEATURESQUEEZE_UTIL_HH
