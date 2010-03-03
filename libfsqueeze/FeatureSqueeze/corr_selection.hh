@@ -10,7 +10,7 @@
 namespace fsqueeze {
 
 SelectedFeatureAlphas corrFeatureSelection(DataSet const &ds, Logger logger,
-	size_t nFeatures = std::numeric_limits<size_t>::max());
+	double minCorrelation = 0.9, size_t nFeatures = std::numeric_limits<size_t>::max());
 
 }
 

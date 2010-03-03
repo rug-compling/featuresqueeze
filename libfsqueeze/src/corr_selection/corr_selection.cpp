@@ -98,7 +98,7 @@ VectorXd featureCorrelations(DataSet const &ds, VectorXd const &avgs, VectorXd c
 }
 
 SelectedFeatureAlphas fsqueeze::corrFeatureSelection(DataSet const &ds, Logger logger,
-	size_t nFeatures)
+	double minCorrelation, size_t nFeatures)
 {
 	FeatureChangeFreqs changeFreqs = ds.dynamicFeatureFreqs();
 	VectorXd avgs = calcAverages(ds);
@@ -130,7 +130,7 @@ SelectedFeatureAlphas fsqueeze::corrFeatureSelection(DataSet const &ds, Logger l
 		VectorXd rs = featureCorrelations(ds, avgs, sds, iter->first, iterCopy,
 			orderedFeatures.end());
 		for (int i = 0; i < rs.rows(); ++i)
-			if (rs[i] > 0.9 || rs[i] < -0.9)
+			if (rs[i] >= minCorrelation || rs[i] <= -minCorrelation)
 				excludedFeatures.insert(i);
 	}
 	

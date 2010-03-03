@@ -35,15 +35,17 @@ void usage(string const &programName)
 {
 	cerr << "Usage: " << programName << " [OPTION] dataset" << endl << endl <<
 		"  -a val\t Alpha convergence threshold (default: 1e-6)" << endl <<
-		"  -f\t\t Fast selection algorithm (do not recalculate all gains)" << endl <<
+		"  -c\t\t Correlation selection" << endl <<
+		"  -f\t\t Fast maxent selection (do not recalculate all gains)" << endl <<
 		"  -g val\t Gain threshold (default: 1e-6)" << endl <<
 		"  -n val\t Maximum number of features" << endl <<
-		"  -o\t\t Find overlap (incompatible with -f)" << endl << endl;
+		"  -o\t\t Find overlap (incompatible with -f)" << endl <<
+		"  -r val\t Correlation exclusion threshold (default: 0.9)" << endl << endl;
 }
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:n:o");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:n:or:");
 	
 	if (programOptions.arguments().size() != 1)
 	{
@@ -54,7 +56,14 @@ int main(int argc, char *argv[])
 	if (programOptions.option('o') && programOptions.option('f'))
 	{
 		cerr << "Overlap detection (-o) and fast selection(-f) cannot be used " <<
-			"simultaneausly!" << endl << endl;
+			"simultaneously!" << endl << endl;
+		return 1;
+	}
+	
+	if (programOptions.option('r') && !programOptions.option('c'))
+	{
+		cerr << "Minimal correlation specification (-r) can only be used " <<
+			"with correlation" << endl << "selection (-c)!" << endl;
 		return 1;
 	}
 	
@@ -69,6 +78,10 @@ int main(int argc, char *argv[])
 	size_t nFeatures = numeric_limits<size_t>::max();
 	if (programOptions.option('n'))
 		nFeatures = fsqueeze::parseString<size_t>(programOptions.optionValue('n'));
+	
+	double minCorrelation = 0.9;
+	if (programOptions.option('r'))
+		minCorrelation = fsqueeze::parseString<double>(programOptions.optionValue('r'));
 	
 	cerr << "Reading data... ";
 
@@ -88,7 +101,7 @@ int main(int argc, char *argv[])
 		ds.nFeatures() << endl;
 	
 	if (programOptions.option('c'))
-		fsqueeze::corrFeatureSelection(ds, logger, nFeatures);
+		fsqueeze::corrFeatureSelection(ds, logger, minCorrelation, nFeatures);
 	else if (programOptions.option('f'))
 		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
 	else
