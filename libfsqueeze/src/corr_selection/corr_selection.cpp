@@ -77,13 +77,12 @@ double featureCorrelation(DataSet const &ds, VectorXd const &avgs, VectorXd cons
 }
 
 VectorXd featureCorrelations(DataSet const &ds, VectorXd const &avgs, VectorXd const &sds,
-	int feature, set<pair<int, int> >::const_iterator begin,
-	set<pair<int, int> >::const_iterator end)
+	int feature, unordered_set<int>::const_iterator begin, unordered_set<int>::const_iterator end)
 {
 	VectorXd rs(VectorXd::Zero(ds.nFeatures()));
 	vector<int> fs;
 	for (; begin != end; ++begin)
-		fs.push_back(begin->first);
+		fs.push_back(*begin);
 	
 	#pragma omp parallel for
 	for (int i = 0; i < static_cast<int>(fs.size()); ++i)
@@ -111,27 +110,27 @@ SelectedFeatureAlphas fsqueeze::corrFeatureSelection(DataSet const &ds, Logger l
 
 	VectorXd sds = calcSDs(ds, avgs, orderedFeatures);
 	
-	unordered_set<int> excludedFeatures;
-	size_t nSelected = 0;
+	unordered_set<int> selectedFeatures;
 	for (set<pair<int, int> >::const_iterator iter = orderedFeatures.begin();
-			iter != orderedFeatures.end() && nSelected < nFeatures; ++iter)
+			iter != orderedFeatures.end() && selectedFeatures.size() < nFeatures; ++iter)
 	{
-		if (excludedFeatures.find(iter->first) != excludedFeatures.end())
+		// Does this feature overlap with a selected feature?
+		bool overlapping = false;
+		VectorXd rs = featureCorrelations(ds, avgs, sds, iter->first, selectedFeatures.begin(),
+			selectedFeatures.end());
+		for (int i = 0; i < rs.rows(); ++i)
+			if (rs[i] >= minCorrelation || rs[i] <= -minCorrelation) {
+				overlapping = true;
+				break;
+			}
+		
+		if (overlapping)
 			continue;
 
 		logger.message() << iter->first << "\t" << iter->second <<
 			"\t" << iter->second << "\n";
-		++nSelected;
+		selectedFeatures.insert(iter->first);
 
-		set<pair<int, int> >::const_iterator iterCopy = iter;
-		++iterCopy;
-		
-		// Exclude overlapping features.
-		VectorXd rs = featureCorrelations(ds, avgs, sds, iter->first, iterCopy,
-			orderedFeatures.end());
-		for (int i = 0; i < rs.rows(); ++i)
-			if (rs[i] >= minCorrelation || rs[i] <= -minCorrelation)
-				excludedFeatures.insert(i);
 	}
 	
 	SelectedFeatureAlphas selected;
