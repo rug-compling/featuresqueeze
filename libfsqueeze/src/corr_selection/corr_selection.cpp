@@ -118,8 +118,9 @@ SelectedFeatureAlphas fsqueeze::corrFeatureSelection(DataSet const &ds, Logger l
 		bool overlapping = false;
 		VectorXd rs = featureCorrelations(ds, avgs, sds, iter->first, selectedFeatures.begin(),
 			selectedFeatures.end());
-		for (int i = 0; i < rs.rows(); ++i)
-			if (rs[i] >= minCorrelation || rs[i] <= -minCorrelation) {
+		for (unordered_set<int>::const_iterator sIter = selectedFeatures.begin();
+			sIter != selectedFeatures.end(); ++sIter)
+			if (rs[*sIter] >= minCorrelation || rs[*sIter] <= -minCorrelation) {
 				overlapping = true;
 				break;
 			}
