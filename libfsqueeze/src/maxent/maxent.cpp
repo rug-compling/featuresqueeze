@@ -83,7 +83,7 @@ double fsqueeze::calcGain(double gaussianVariance,
 	}
 	
 	if (gaussianVariance != 0.0)
-		modelLL -= pow(alpha, 2.0) * 2.0 * gaussianVariance;
+		modelLL -= pow(alpha, 2.0) * gaussianVariance;
 	
 	return -modelLL + alpha * expFeatureValues[feature];
 }
@@ -123,7 +123,7 @@ OrderedGains fsqueeze::calcGains(double gaussianVariance,
 		double modelLL = modelLLs[f];
 
 		if (gaussianVariance != 0.0)
-			 modelLL -= pow(alphas[f], 2.0) * 2.0 * gaussianVariance;
+			 modelLL -= pow(alphas[f], 2.0) * gaussianVariance;
 
 		gains.insert(make_pair(f, -modelLL + alphas[f] *
 			expFeatureValues[f]));

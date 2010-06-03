@@ -2,4 +2,4 @@
 EIGEN2PREFIX=/opt/local/include/eigen2
 
 # Parallelize certain sections with OpenMP.
-USE_OPENMP=no
+USE_OPENMP=yes
