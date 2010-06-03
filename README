@@ -5,15 +5,15 @@ Daniël de Kok <me@danieldk.eu>
 Introduction
 ------------
 
-featuresqueeze performs maximum entropy-based feature selection. Selection
-is performed by attempting to add estimate feature weights one at a time, 
-where the weight/feature that provides the highest gain is added [1]. To
-make this computationally feasible, we assume that the weight of a feature
-added to a model stays constant.
+featuresqueeze performs maximum entropy-based feature selection for
+ranking tasks [1]. Selection is performed by attempting to add estimate
+feature weights one at a time, where the weight/feature that provides
+the highest gain is added [2]. To make this computationally feasible,
+we assume that the weight of a feature added to a model stays constant.
 
 featuresqueeze also implements a fast feature selection method, that
 assumes that gains of features rarely improve when a feature is added to
-the model [2].
+the model [3].
 
 This program has been developed for compacting models for the Alpino
 fluency ranker for Dutch.
@@ -65,10 +65,12 @@ the top-level directory.
 References
 ----------
 
-1. A maximum entropy approach to natural language processing, Adam L. Berger,
+1. Feature selection for fluency ranking, Daniël de Kok, Proceedings of the
+   6th International Language Generation Conference (INLG 2010)
+2. A maximum entropy approach to natural language processing, Adam L. Berger,
    Vincent J. Della Pietra, Stephen A. Della Pietra, Computational Linguistics,
    Volume 22, Issue 1, March 1996
-2. A fast algorithm for feature selection in conditional maximum entropy
+3. A fast algorithm for feature selection in conditional maximum entropy
    modeling, Yaqian Zhou, Fuliang Weng, Lide Wu, Hauke Schmidt, Theoretical
    Issues In Natural Language Processing, Proceedings of the 2003 conference
    on Empirical methods in natural language processing, Volume 10
