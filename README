@@ -39,7 +39,7 @@ fsqueeze [OPTION] dataset
   -a val   Alpha convergence threshold (default: 1e-6)
   -c       Correlation selection
   -f       Fast maxent selection (do not recalculate all gains)
-  -g val   Gain threshold (default: 1e-6)
+  -g val   Gain threshold (default: 1e-20)
   -n val   Maximum number of features
   -o       Find overlap (incompatible with -f)
   -r val   Correlation exclusion threshold (default: 0.9)

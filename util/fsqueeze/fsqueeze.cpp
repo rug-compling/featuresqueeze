@@ -37,7 +37,7 @@ void usage(string const &programName)
 		"  -a val\t Alpha convergence threshold (default: 1e-6)" << endl <<
 		"  -c\t\t Correlation selection" << endl <<
 		"  -f\t\t Fast maxent selection (do not recalculate all gains)" << endl <<
-		"  -g val\t Gain threshold (default: 1e-6)" << endl <<
+		"  -g val\t Gain threshold (default: 1e-20)" << endl <<
 		"  -n val\t Maximum number of features" << endl <<
 		"  -o\t\t Find overlap (incompatible with -f)" << endl <<
 		"  -r val\t Correlation exclusion threshold (default: 0.9)" << endl << endl;
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 	if (programOptions.option('a'))
 		alphaThreshold = fsqueeze::parseString<double>(programOptions.optionValue('a'));
 
-	double gradientThreshold = 1e-6;
+	double gradientThreshold = 1e-20;
 	if (programOptions.option('g'))
 		gradientThreshold = fsqueeze::parseString<double>(programOptions.optionValue('g'));
 	
