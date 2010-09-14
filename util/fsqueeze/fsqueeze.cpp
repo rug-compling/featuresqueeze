@@ -41,7 +41,7 @@ void usage(string const &programName)
 		"  -n val\t Maximum number of features" << endl <<
 		"  -o\t\t Find overlap (incompatible with -f)" << endl <<
 		"  -r val\t Correlation exclusion threshold (default: 0.9)" << endl << 
-		"  -s val\t L2 prior variance (default: 0.0)" << endl << endl;
+		"  -s val\t Variance for L2 prior (default: 0.0)" << endl << endl;
 }
 
 int main(int argc, char *argv[])
