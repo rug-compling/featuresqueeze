@@ -13,6 +13,8 @@
 #include <FeatureSqueeze/stringutil.hh>
 #include <FeatureSqueeze/Context.hh>
 #include <FeatureSqueeze/DataSet.hh>
+#include <FeatureSqueeze/maxent.hh>
+
 
 using namespace std;
 using namespace std::tr1;

@@ -61,7 +61,6 @@ void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
 }
 
 double fsqueeze::calcGain(DataSet const &dataSet,
-	ExpectedValues const &expFeatureValues,
 	Sums const &sums,
 	Zs const &zs,
 	size_t feature,
@@ -81,13 +80,12 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 		gainSum -= lg;
 	}
 	
-	return gainSum + alpha * expFeatureValues[feature];
+	return gainSum + alpha * dataSet.expFeatureValues()[feature];
 }
 
 // Calculate the gain of adding each feature.
 OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
-	ExpectedValues const &expFeatureValues,
 	Sums const &sums,
 	Zs const &zs,
 	FeatureWeights const &alphas
@@ -116,7 +114,7 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 	OrderedGains gains;
 	for (int f = 0; f < alphas.rows(); ++f)
 		gains.insert(make_pair(f, gainSum[f] + alphas[f] *
-			expFeatureValues[f]));
+			dataSet.expFeatureValues()[f]));
 	
 	return gains;
 }
@@ -162,12 +160,12 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 	return ctxActive;
 }
 
-ExpectedValues fsqueeze::expFeatureValues(DataSet const &dataSet)
+ExpectedValues fsqueeze::expFeatureValues(DsFeatureMap const &features, int nFeatures)
 {
-	ExpectedValues expVals(dataSet.nFeatures());
+	ExpectedValues expVals(nFeatures);
 	
-	for (DsFeatureMap::const_iterator fIter = dataSet.features().begin();
-		fIter != dataSet.features().end(); ++fIter)
+	for (DsFeatureMap::const_iterator fIter = features.begin();
+		fIter != features.end(); ++fIter)
 	{
 		double expVal = 0.0;
 		for (std::vector<std::pair<double, double> >::const_iterator occIter =

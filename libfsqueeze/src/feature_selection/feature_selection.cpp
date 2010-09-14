@@ -259,7 +259,6 @@ OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
 
 OrderedGains fullSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
-	ExpectedValues const &expVals,
 	Sums *sums,
 	Zs *zs,
 	FeatureSet *selectedFeatures,
@@ -270,20 +269,20 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 	vector<FeatureSet> ctxActiveFs = contextActiveFeatures(dataSet, *selectedFeatures, *sums, *zs);
 	FeatureSet unconvergedFs = activeFeatures(ctxActiveFs);
 
-	R_f r = r_f(dataSet.nFeatures(), unconvergedFs, expVals, expModelVals);
+	R_f r = r_f(dataSet.nFeatures(), unconvergedFs, dataSet.expFeatureValues(), expModelVals);
 	
 	FeatureWeights a = a_f(dataSet.nFeatures());
 
 	while (unconvergedFs.size() != 0)
 	{
-		Gp gp = expVals;
+		Gp gp = dataSet.expFeatureValues();
 		Gpp gpp = a_f(dataSet.nFeatures());
 	
 		updateGradients(dataSet, unconvergedFs, ctxActiveFs, *sums, *zs, a, &gp, &gpp);
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
 	}
 
-	OrderedGains gains = calcGains(dataSet, ctxActiveFs, expVals, *sums, *zs, a);
+	OrderedGains gains = calcGains(dataSet, ctxActiveFs, *sums, *zs, a);
 
 	size_t maxF = gains.begin()->first;
 	double maxGain = gains.begin()->second;
@@ -306,19 +305,17 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	
 	Zs zs = initialZs(dataSet);
 	Sums sums = initialSums(dataSet);
-	
-	ExpectedValues expVals = expFeatureValues(dataSet);
-	
+		
 	OrderedGains prevGains;
 	while(selectedFeatures.size() < nFeatures &&
 		selectedFeatures.size() < dataSet.features().size())	
 	{
 		OrderedGains gains;
 		if (detectOverlap)
-			gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
+			gains = fullSelectionStage(dataSet, alphaThreshold, &sums, &zs,
 				&selectedFeatures, &selectedFeatureAlphas);
 		else
-			fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
+			fullSelectionStage(dataSet, alphaThreshold, &sums, &zs,
 				&selectedFeatures, &selectedFeatureAlphas);
 		
 		if (selectedFeatureAlphas.size() == 0)
@@ -357,7 +354,6 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 
 void fastSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
-	ExpectedValues const &expVals,
 	Sums *sums,
 	Zs *zs,
 	FeatureSet *selectedFeatures,
@@ -370,19 +366,19 @@ void fastSelectionStage(DataSet const &dataSet,
 	{
 		size_t feature = gains->begin()->first;
 		double a = 0.0;
-		double r = r_f(feature, expVals, expModelVals);
+		double r = r_f(feature, dataSet.expFeatureValues(), expModelVals);
 
 		bool converged = false;
 		while (!converged)
 		{
-			double gp = expVals[feature];
+			double gp = dataSet.expFeatureValues()[feature];
 			double gpp = 0.0;
 			
 			updateGradient(dataSet, feature, *sums, *zs, a, &gp, &gpp);
 			converged = updateAlpha(r, gp, gpp, &a, alphaThreshold);
 		}	
 
-		double gain = calcGain(dataSet, expVals, *sums, *zs, feature, a);	
+		double gain = calcGain(dataSet, *sums, *zs, feature, a);	
 		
 		OrderedGains::const_iterator gainIter = gains->begin();		
 		++gainIter;
@@ -419,10 +415,8 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	Zs zs = initialZs(dataSet);
 	Sums sums = initialSums(dataSet);
 	
-	ExpectedValues expVals = expFeatureValues(dataSet);
-
 	// Start with a full selection stage to calculate the stage 2 model and gains.
-	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
+	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, &sums, &zs,
 		&selectedFeatures, &selectedFeatureAlphas);
 	OrderedGains::const_iterator gainIter = gains.begin();
 	++gainIter;
@@ -435,7 +429,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	while(selectedFeatures.size() < nFeatures &&
 		selectedFeatures.size() < dataSet.features().size())	
 	{
-		fastSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
+		fastSelectionStage(dataSet, alphaThreshold, &sums, &zs,
 			&selectedFeatures, &selectedFeatureAlphas, &gains);
 
 		if (selectedFeatureAlphas.back().third < gainThreshold)

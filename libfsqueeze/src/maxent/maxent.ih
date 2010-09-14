@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <FeatureSqueeze/functional.hh>
+#include <FeatureSqueeze/lbfgs.h>
 #include <FeatureSqueeze/maxent.hh>
 
 using namespace std;

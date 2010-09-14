@@ -71,8 +71,8 @@ void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
  * Calculate the gain of a model after changing a feature weight from zero
  * to non-zero.
  */
-double calcGain(DataSet const &dataSet, ExpectedValues const &expFeatureValues,
-	Sums const &sums, Zs const &zs, size_t feature, double alpha);
+double calcGain(DataSet const &dataSet, Sums const &sums, Zs const &zs,
+	size_t feature, double alpha);
 
 /*
  * Calculate the model gains after changing for a set of features and their
@@ -80,7 +80,7 @@ double calcGain(DataSet const &dataSet, ExpectedValues const &expFeatureValues,
  */
 OrderedGains calcGains(DataSet const &dataSet,
 	std::vector<FeatureSet> const &contextActiveFeatures,
-	ExpectedValues const &expFeatureValues, Sums const &sums, Zs const &zs,
+	Sums const &sums, Zs const &zs,
 	FeatureWeights const &alphas);
 
 /*
@@ -92,7 +92,7 @@ std::vector<FeatureSet> contextActiveFeatures(DataSet const &dataSet,
 /**
  * Calculate the expected value of each feature in a data set.
  */
-ExpectedValues expFeatureValues(DataSet const &dataSet);
+ExpectedValues expFeatureValues(DsFeatureMap const &features, int nFeatures);
 
 /**
  * Calculate the expected value of each feature according to the model represented

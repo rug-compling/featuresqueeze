@@ -69,6 +69,11 @@ public:
 	FeatureChangeFreqs dynamicFeatureFreqs() const;
 	
 	/**
+	 * Get the expected feature values
+	 */
+	Eigen::VectorXd const &expFeatureValues() const;
+	
+	/**
 	 * Get dataset features.
 	 */
 	DsFeatureMap const &features() const;
@@ -100,6 +105,7 @@ private:
 	ContextVector d_contexts;
 	DsFeatureMap d_features;
 	int d_nFeatures;
+	Eigen::VectorXd d_expFeatureValues;
 };
 
 template <typename T>
@@ -120,6 +126,11 @@ inline double DataSet::contextSum() const
 inline ContextVector const &DataSet::contexts() const
 {
 	return d_contexts;
+}
+
+inline Eigen::VectorXd const &DataSet::expFeatureValues() const
+{
+	return d_expFeatureValues;
 }
 
 inline DsFeatureMap const &DataSet::features() const

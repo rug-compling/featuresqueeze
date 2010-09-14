@@ -34,6 +34,8 @@ DataSet::DataSet(ContextVector const &contexts)
 	removeStaticFeatures();
 	normalize();
 	buildFeatureMap();
+
+	d_expFeatureValues = fsqueeze::expFeatureValues(d_features, d_nFeatures);
 }
 
 DataSet::DataSet(DataSet const &other)
@@ -53,6 +55,7 @@ void DataSet::copy(DataSet const &other)
 {
 	d_contexts = other.d_contexts;
 	d_nFeatures = other.d_nFeatures;
+	d_expFeatureValues = other.d_expFeatureValues;
 	buildFeatureMap();
 }
 
