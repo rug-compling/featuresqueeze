@@ -71,15 +71,14 @@ void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
  * Calculate the gain of a model after changing a feature weight from zero
  * to non-zero.
  */
-double calcGain(double gausianStdDev, DataSet const &dataSet,
-	ExpectedValues const &expFeatureValues, Sums const &sums,
-	Zs const &zs, size_t feature, double alpha);
+double calcGain(DataSet const &dataSet, ExpectedValues const &expFeatureValues,
+	Sums const &sums, Zs const &zs, size_t feature, double alpha);
 
 /*
  * Calculate the model gains after changing for a set of features and their
  * weights.
  */
-OrderedGains calcGains(double gausianStdDev, DataSet const &dataSet,
+OrderedGains calcGains(DataSet const &dataSet,
 	std::vector<FeatureSet> const &contextActiveFeatures,
 	ExpectedValues const &expFeatureValues, Sums const &sums, Zs const &zs,
 	FeatureWeights const &alphas);

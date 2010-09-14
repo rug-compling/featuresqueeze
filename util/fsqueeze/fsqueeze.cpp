@@ -40,13 +40,12 @@ void usage(string const &programName)
 		"  -g val\t Gain threshold (default: 1e-20)" << endl <<
 		"  -n val\t Maximum number of features" << endl <<
 		"  -o\t\t Find overlap (incompatible with -f)" << endl <<
-		"  -r val\t Correlation exclusion threshold (default: 0.9)" << endl << 
-		"  -s val\t Variance for L2 prior (default: 0.0)" << endl << endl;
+		"  -r val\t Correlation exclusion threshold (default: 0.9)" << endl << endl;
 }
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:n:or:s:");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:n:or:");
 	
 	if (programOptions.arguments().size() != 1)
 	{
@@ -83,10 +82,6 @@ int main(int argc, char *argv[])
 	double minCorrelation = 0.9;
 	if (programOptions.option('r'))
 		minCorrelation = fsqueeze::parseString<double>(programOptions.optionValue('r'));
-		
-	double gaussianVariance = 0.0;
-	if (programOptions.option('s'))
-		gaussianVariance = 1.0 / fsqueeze::parseString<double>(programOptions.optionValue('s'));
 	
 	cerr << "Reading data... ";
 
@@ -108,9 +103,9 @@ int main(int argc, char *argv[])
 	if (programOptions.option('c'))
 		fsqueeze::corrFeatureSelection(ds, logger, minCorrelation, nFeatures);
 	else if (programOptions.option('f'))
-		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, gaussianVariance, nFeatures);
+		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
 	else
-		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, gaussianVariance, nFeatures,
+		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
 			programOptions.option('o'));
 	
 	return 0;

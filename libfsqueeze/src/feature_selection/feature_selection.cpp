@@ -259,7 +259,6 @@ OrderedGains findOverlappingFeatures(OrderedGains const &prevGains,
 
 OrderedGains fullSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
-	double gaussianVariance,
 	ExpectedValues const &expVals,
 	Sums *sums,
 	Zs *zs,
@@ -284,7 +283,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 		unconvergedFs = updateAlphas(unconvergedFs, r, gp, gpp, &a, alphaThreshold);
 	}
 
-	OrderedGains gains = calcGains(gaussianVariance, dataSet, ctxActiveFs, expVals, *sums, *zs, a);
+	OrderedGains gains = calcGains(dataSet, ctxActiveFs, expVals, *sums, *zs, a);
 
 	size_t maxF = gains.begin()->first;
 	double maxGain = gains.begin()->second;
@@ -300,7 +299,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	Logger logger, double alphaThreshold, double gainThreshold,
-	double gaussianVariance, size_t nFeatures, bool detectOverlap)
+	size_t nFeatures, bool detectOverlap)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -316,11 +315,11 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	{
 		OrderedGains gains;
 		if (detectOverlap)
-			gains = fullSelectionStage(dataSet, alphaThreshold, gaussianVariance,
-				expVals, &sums, &zs, &selectedFeatures, &selectedFeatureAlphas);
+			gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
+				&selectedFeatures, &selectedFeatureAlphas);
 		else
-			fullSelectionStage(dataSet, alphaThreshold, gaussianVariance, expVals,
-				&sums, &zs, &selectedFeatures, &selectedFeatureAlphas);
+			fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
+				&selectedFeatures, &selectedFeatureAlphas);
 		
 		if (selectedFeatureAlphas.size() == 0)
 			break;
@@ -358,7 +357,6 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 
 void fastSelectionStage(DataSet const &dataSet,
 	double alphaThreshold,
-	double gaussianVariance,
 	ExpectedValues const &expVals,
 	Sums *sums,
 	Zs *zs,
@@ -384,7 +382,7 @@ void fastSelectionStage(DataSet const &dataSet,
 			converged = updateAlpha(r, gp, gpp, &a, alphaThreshold);
 		}	
 
-		double gain = calcGain(gaussianVariance, dataSet, expVals, *sums, *zs, feature, a);	
+		double gain = calcGain(dataSet, expVals, *sums, *zs, feature, a);	
 		
 		OrderedGains::const_iterator gainIter = gains->begin();		
 		++gainIter;
@@ -413,8 +411,7 @@ void fastSelectionStage(DataSet const &dataSet,
 }
 
 SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
-	Logger logger, double alphaThreshold, double gainThreshold,
-	double gaussianVariance, size_t nFeatures)
+	Logger logger, double alphaThreshold, double gainThreshold, size_t nFeatures)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -425,8 +422,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	ExpectedValues expVals = expFeatureValues(dataSet);
 
 	// Start with a full selection stage to calculate the stage 2 model and gains.
-	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold,
-		gaussianVariance, expVals, &sums, &zs,
+	OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
 		&selectedFeatures, &selectedFeatureAlphas);
 	OrderedGains::const_iterator gainIter = gains.begin();
 	++gainIter;
@@ -439,7 +435,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	while(selectedFeatures.size() < nFeatures &&
 		selectedFeatures.size() < dataSet.features().size())	
 	{
-		fastSelectionStage(dataSet, alphaThreshold, gaussianVariance, expVals, &sums, &zs,
+		fastSelectionStage(dataSet, alphaThreshold, expVals, &sums, &zs,
 			&selectedFeatures, &selectedFeatureAlphas, &gains);
 
 		if (selectedFeatureAlphas.back().third < gainThreshold)
