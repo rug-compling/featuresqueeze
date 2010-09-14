@@ -43,9 +43,13 @@ fsqueeze [OPTION] dataset
   -n val   Maximum number of features
   -o       Find overlap (incompatible with -f)
   -r val   Correlation exclusion threshold (default: 0.9)
+  -s val   L2 prior variance (default: 0.0)
 
 Where 'dataset' is a data set in TADM format minus the optional header
 line.
+
+Selection of features can be stopped based on two criteria: the gain
+threshold (-g) and the maximum number of features (-n).
 
 To do
 -----

@@ -60,7 +60,8 @@ void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
 	}
 }
 
-double fsqueeze::calcGain(DataSet const &dataSet,
+double fsqueeze::calcGain(double gaussianVariance,
+	DataSet const &dataSet,
 	ExpectedValues const &expFeatureValues,
 	Sums const &sums,
 	Zs const &zs,
@@ -68,7 +69,7 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 	double alpha
 )
 {
-	double gainSum = 0.0;
+	double modelLL = 0.0;
 	ContextVector const &contexts = dataSet.contexts();
 
 	#pragma omp parallel for
@@ -78,14 +79,18 @@ double fsqueeze::calcGain(DataSet const &dataSet,
 		double lg = contexts[i].prob() * log(newZ / zs[i]);
 		
 		#pragma omp atomic
-		gainSum -= lg;
+		modelLL += lg;
 	}
 	
-	return gainSum + alpha * expFeatureValues[feature];
+	if (gaussianVariance != 0.0)
+		modelLL -= pow(alpha, 2.0) * gaussianVariance;
+	
+	return -modelLL + alpha * expFeatureValues[feature];
 }
 
 // Calculate the gain of adding each feature.
-OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
+OrderedGains fsqueeze::calcGains(double gaussianVariance,
+	DataSet const &dataSet,
 	vector<FeatureSet> const &contextActiveFeatures,
 	ExpectedValues const &expFeatureValues,
 	Sums const &sums,
@@ -93,7 +98,7 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 	FeatureWeights const &alphas
 )
 {
-	GainMap gainSum;
+	GainMap modelLLs;
 	
 	ContextVector const &contexts = dataSet.contexts();
 	
@@ -109,14 +114,20 @@ OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
 			
 			double lg = contexts[i].prob() * log(newZ / zs[i]);
 			
-			gainSum[f] -= lg;
+			modelLLs[f] += lg;
 		}		
 	}
 	
 	OrderedGains gains;
-	for (int f = 0; f < alphas.rows(); ++f)
-		gains.insert(make_pair(f, gainSum[f] + alphas[f] *
+	for (int f = 0; f < alphas.rows(); ++f) {
+		double modelLL = modelLLs[f];
+
+		if (gaussianVariance != 0.0)
+			 modelLL -= pow(alphas[f], 2.0) * gaussianVariance;
+
+		gains.insert(make_pair(f, -modelLL + alphas[f] *
 			expFeatureValues[f]));
+	}
 	
 	return gains;
 }
