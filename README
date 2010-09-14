@@ -25,9 +25,13 @@ Requirements:
 
 - C++ standard library with TR1 extensions.
 - The Eigen C++ template library for linear algebra.
+- cmake 2.6 or later.
 
 g++ 4.2.x satisfies these requirements. With these components in place,
-compile by simply executing 'make' in the top-level directory.
+compile by executing the following commands in the top-level directory:
+
+    cmake .
+    make
 
 Usage
 -----

@@ -1,5 +1,0 @@
-# Prefix to the Eigen 2.0 headers. 
-EIGEN2PREFIX=/opt/local/include/eigen2
-
-# Parallelize certain sections with OpenMP.
-USE_OPENMP=yes
