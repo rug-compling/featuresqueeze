@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 		
 	double gaussianVariance = 0.0;
 	if (programOptions.option('s'))
-		gaussianVariance = 1.0 / (2.0 * fsqueeze::parseString<double>(programOptions.optionValue('s')));
+		gaussianVariance = 1.0 / fsqueeze::parseString<double>(programOptions.optionValue('s'));
 	
 	cerr << "Reading data... ";
 
