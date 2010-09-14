@@ -227,6 +227,138 @@ Sums fsqueeze::initialSums(DataSet const &ds)
 	return sums;
 }
 
+lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, lbfgsfloatval_t *g,
+	int const n, lbfgsfloatval_t const step);
+	
+int lbfgs_maxent_progress(void *instance, const lbfgsfloatval_t *x, const lbfgsfloatval_t *g,
+	const lbfgsfloatval_t fx, const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
+	const lbfgsfloatval_t step, int n, int k, int ls);
+
+struct EvaluateData
+{
+	DataSet const *dataSet;
+	FeatureSet const *featureSet;
+};
+
+Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet, FeatureSet const &featureSet)
+{
+	lbfgsfloatval_t *x = lbfgs_malloc(dataSet.nFeatures());
+
+	lbfgs_parameter_t param;
+	lbfgs_parameter_init(&param);
+	
+	EvaluateData evalData = {&dataSet, &featureSet};
+	int r = lbfgs(dataSet.nFeatures(), x, 0, lbfgs_maxent_evaluate, lbfgs_maxent_progress,
+		const_cast<void *>(reinterpret_cast<void const *>(&evalData)), &param);
+
+	cerr << "r: " << r << endl;
+//	cerr << LBFGSERR_ROUNDING_ERROR << endl;
+
+	Eigen::VectorXd weights(dataSet.nFeatures());
+	
+	for (int i = 0; i < weights.size(); ++i)
+		weights[i] = x[i];
+	
+	cerr << "ngram: " << x[3833] << endl;
+	
+	lbfgs_free(x);
+	
+	return weights;
+}
+
+lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, lbfgsfloatval_t *g,
+	int const n, lbfgsfloatval_t const step)
+{
+	/*
+	for (int i = 0; i < n; ++i)
+		if (x[i] != 0.0)
+			cerr << "x[" << i << "] = " << x[i] << endl;
+	*/
+	EvaluateData const *evalData = reinterpret_cast<EvaluateData const *>(instance);
+	DataSet const *dataSet = evalData->dataSet;
+	FeatureSet const *featureSet = evalData->featureSet;
+
+	Eigen::VectorXd const &expVals = dataSet->expFeatureValues();
+	for (int i = 0; i < n; ++ i)
+		if (featureSet->find(i) != featureSet->end())
+			g[i] = -expVals[i];
+
+	//Eigen::VectorXd expModelVals = Eigen::VectorXd::Zero(dataSet->nFeatures());
+	lbfgsfloatval_t ll = 0.0;
+		
+	ContextVector::const_iterator ctxIter = dataSet->contexts().begin();
+	size_t i = 0;
+	while (ctxIter != dataSet->contexts().end())
+	{
+		// Skip contexts that have a probability of zero. If we allow such
+		// contexts, we can not calculate empirical p(y|x).
+		if (ctxIter->prob() == 0.0) {
+			++ctxIter; ++i;
+			continue;
+		}
+
+		FeatureValues const &featureVals = ctxIter->featureValues();
+		int nEvents = ctxIter->eventProbs().size();
+		
+		Eigen::VectorXd sums = Eigen::VectorXd::Zero(nEvents);
+		double z = 0.0;
+		
+		// Calculate unnormalized probabilities, and the normalizer (Z(x)).
+		for (int j = 0; j < featureVals.outerSize(); ++j)
+		{
+			for (FeatureValues::InnerIterator fIter(featureVals, j);
+					fIter; ++fIter)
+				if (featureSet->find(fIter.index()) != featureSet->end())
+					sums[j] += x[fIter.index()] * fIter.value();
+
+			sums[j] = exp(sums[j]);
+			z += sums[j];
+		}
+		
+		for (int j = 0; j < featureVals.outerSize(); ++j)
+		{
+			// Conditional probability of the event y, given the context x.
+			double pyx = p_yx(sums[j], z);
+			
+			ll += ctxIter->eventProbs()[j] * log(pyx);
+			
+			// Contribution of this context to p(f).
+			for (FeatureValues::InnerIterator fIter(featureVals, j);
+					fIter; ++fIter)
+				if (featureSet->find(fIter.index()) != featureSet->end())
+					g[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
+		}
+		
+		++ctxIter; ++i;
+	}
+		
+	// Calculate gradients of the log-likelihood functions for a feature,
+	// given the parameter x[i].
+	/*
+	Eigen::VectorXd const &expVals = dataSet->expFeatureValues();
+	for (int i = 0; i < expModelVals.size(); ++i)
+		if (featureSet->find(i) != featureSet->end()) {
+			cerr << "expVals[i] = " << expVals[i] << ", expModelVals[i] = " << expModelVals[i] << endl;
+			g[i] = expVals[i] - expModelVals[i];
+			cerr << "g[" << i << "] = " << g[i] << endl;
+		}
+    */
+
+	//cerr << "-log_likelihood: " << -ll << endl;
+	
+	return -ll;
+}
+
+int lbfgs_maxent_progress(void *instance, const lbfgsfloatval_t *x, const lbfgsfloatval_t *g,
+	const lbfgsfloatval_t fx, const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
+	const lbfgsfloatval_t step, int n, int k, int ls)
+{
+	cerr << "lbfgs iteration: " << k << endl;
+	cerr << "fx = " << fx << endl;
+	
+	return 0;
+}
+
 double fsqueeze::zf(FeatureValues const &featureValues, Sum const &ctxSums,
 	double z, size_t feature, double alpha)
 {

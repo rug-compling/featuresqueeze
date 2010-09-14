@@ -441,6 +441,9 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 		Triple<size_t, double, double> selected = selectedFeatureAlphas.back();
 		logger.message() << selected.first << "\t" << selected.second <<
 			"\t" << selected.third << "\n";
+			
+		if (selectedFeatures.size() % 50 == 0)
+			lbfgs_maxent(dataSet, selectedFeatures);
 	}
 	
 	return selectedFeatureAlphas;

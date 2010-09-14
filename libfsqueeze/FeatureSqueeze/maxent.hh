@@ -112,6 +112,8 @@ Zs initialZs(DataSet const &ds);
  */
 Sums initialSums(DataSet const &ds);
 
+Eigen::VectorXd lbfgs_maxent(DataSet const &dataSet, FeatureSet const &featureSet);
+
 /**
  * Calculate the probability p(y|x) based on sum and normalization z.
  */

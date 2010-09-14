@@ -4,6 +4,8 @@
 #include <iterator>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include <FeatureSqueeze/functional.hh>
 #include <FeatureSqueeze/lbfgs.h>
 #include <FeatureSqueeze/maxent.hh>
