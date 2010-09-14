@@ -24,6 +24,7 @@ set (LIBFSQUEEZE_SOURCES
   libfsqueeze/src/corr_selection/corr_selection.cpp
   libfsqueeze/src/feature_selection/feature_selection.cpp
   libfsqueeze/src/maxent/maxent.cpp
+  libfsqueeze/src/lbfgs/lbfgs.c
 )
 
 set (FSQUEEZE_SOURCES
