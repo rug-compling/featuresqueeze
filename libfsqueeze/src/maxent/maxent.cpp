@@ -297,11 +297,6 @@ Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet, FeatureSet const 
 lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, lbfgsfloatval_t *g,
 	int const n, lbfgsfloatval_t const step)
 {
-	/*
-	for (int i = 0; i < n; ++i)
-		if (x[i] != 0.0)
-			cerr << "x[" << i << "] = " << x[i] << endl;
-	*/
 	EvaluateData const *evalData = reinterpret_cast<EvaluateData const *>(instance);
 	DataSet const *dataSet = evalData->dataSet;
 	FeatureSet const *featureSet = evalData->featureSet;
@@ -311,7 +306,6 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, 
 		if (featureSet->find(i) != featureSet->end())
 			g[i] = -expVals[i];
 
-	//Eigen::VectorXd expModelVals = Eigen::VectorXd::Zero(dataSet->nFeatures());
 	lbfgsfloatval_t ll = 0.0;
 		
 	ContextVector::const_iterator ctxIter = dataSet->contexts().begin();
@@ -348,6 +342,7 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, 
 			// Conditional probability of the event y, given the context x.
 			double pyx = p_yx(sums[j], z);
 			
+			// Update log-likelihood of the model.
 			ll += ctxIter->eventProbs()[j] * log(pyx);
 			
 			// Contribution of this context to p(f).
@@ -359,20 +354,6 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, 
 		
 		++ctxIter; ++i;
 	}
-		
-	// Calculate gradients of the log-likelihood functions for a feature,
-	// given the parameter x[i].
-	/*
-	Eigen::VectorXd const &expVals = dataSet->expFeatureValues();
-	for (int i = 0; i < expModelVals.size(); ++i)
-		if (featureSet->find(i) != featureSet->end()) {
-			cerr << "expVals[i] = " << expVals[i] << ", expModelVals[i] = " << expModelVals[i] << endl;
-			g[i] = expVals[i] - expModelVals[i];
-			cerr << "g[" << i << "] = " << g[i] << endl;
-		}
-    */
-
-	//cerr << "-log_likelihood: " << -ll << endl;
 	
 	return -ll;
 }
