@@ -9,13 +9,13 @@ list(APPEND CMAKE_MODULE_PATH "${featuresqueeze_SOURCE_DIR}/cmake")
 
 include_directories(${featuresqueeze_SOURCE_DIR}/libfsqueeze)
 
-set (CMAKE_CXX_FLAGS "-pedantic -Wno-long-long")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wno-long-long")
 
 # OpenMP currently deadlocks on OS X.
 if (NOT APPLE)
   find_package(OpenMP)
   if(OPENMP_FOUND)
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}) 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   endif()
 endif()
 
