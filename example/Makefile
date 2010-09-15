@@ -7,7 +7,7 @@ all: fluency.best_features
 	gzcat $< > $@ 
 
 %.best: %.est
-	../fsqueeze -f -n 100 $< > $@
+	../squeeze -f -n 100 $< > $@
 
 %.best_features: %.best %.features
 	python ../util/numbers2names/numbers2names\
