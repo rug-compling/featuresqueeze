@@ -80,7 +80,8 @@ SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger,
 SelectedFeatureAlphas featureSelection(DataSet const &ds, Logger logger,
 	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
 	size_t nFeatures = std::numeric_limits<size_t>::max(),
-	bool detectOverlap = false);
+	bool detectOverlap = false,
+	size_t fullOptimizationCycles = 50);
 
 }
 

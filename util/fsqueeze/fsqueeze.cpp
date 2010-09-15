@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 			fullOptimizationCycles);
 	else
 		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
-			programOptions.option('o'));
+			programOptions.option('o'), fullOptimizationCycles);
 	
 	return 0;
 }

@@ -298,7 +298,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	Logger logger, double alphaThreshold, double gainThreshold,
-	size_t nFeatures, bool detectOverlap)
+	size_t nFeatures, bool detectOverlap, size_t fullOptimizationCycles)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -347,6 +347,14 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 			"\t" << selected.third;
 		
 		logger.message() << "\n";
+		
+		if (fullOptimizationCycles != 0 &&
+				selectedFeatures.size() % fullOptimizationCycles == 0) {
+			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures);
+
+			// Recalculate Zs and sums
+			adjustModelFull(dataSet, selectedFeatures, lambdas, &sums, &zs);
+		}
 	}
 	
 	return selectedFeatureAlphas;
@@ -442,7 +450,7 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 		Triple<size_t, double, double> selected = selectedFeatureAlphas.back();
 		logger.message() << selected.first << "\t" << selected.second <<
 			"\t" << selected.third << "\n";
-			
+
 		if (fullOptimizationCycles != 0 &&
 				selectedFeatures.size() % fullOptimizationCycles == 0) {
 			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures);
