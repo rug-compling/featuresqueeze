@@ -64,7 +64,8 @@ typedef std::tr1::unordered_map<size_t, double> GainDeltas;
  */
 SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger, 
 	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
-	size_t nFeatures = std::numeric_limits<size_t>::max());
+	size_t nFeatures = std::numeric_limits<size_t>::max(),
+	size_t fullOptimizationCycles = 50);
 
 /**
  * Select features based on a dataset.

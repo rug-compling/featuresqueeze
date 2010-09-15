@@ -407,7 +407,8 @@ void fastSelectionStage(DataSet const &dataSet,
 }
 
 SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
-	Logger logger, double alphaThreshold, double gainThreshold, size_t nFeatures)
+	Logger logger, double alphaThreshold, double gainThreshold, size_t nFeatures,
+	size_t fullOptimizationCycles)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -442,7 +443,8 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 		logger.message() << selected.first << "\t" << selected.second <<
 			"\t" << selected.third << "\n";
 			
-		if (selectedFeatures.size() % 50 == 0) {
+		if (fullOptimizationCycles != 0 &&
+				selectedFeatures.size() % fullOptimizationCycles == 0) {
 			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures);
 
 			// Recalculate Zs and sums

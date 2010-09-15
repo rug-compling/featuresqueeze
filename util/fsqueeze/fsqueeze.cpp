@@ -38,6 +38,7 @@ void usage(string const &programName)
 		"  -c\t\t Correlation selection" << endl <<
 		"  -f\t\t Fast maxent selection (do not recalculate all gains)" << endl <<
 		"  -g val\t Gain threshold (default: 1e-20)" << endl <<
+		"  -l n\t\t Apply L-BFGS optimization every n cycles (default: disabled)" << endl <<
 		"  -n val\t Maximum number of features" << endl <<
 		"  -o\t\t Find overlap (incompatible with -f)" << endl <<
 		"  -r val\t Correlation exclusion threshold (default: 0.9)" << endl << endl;
@@ -45,7 +46,7 @@ void usage(string const &programName)
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:n:or:");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:l:n:or:");
 	
 	if (programOptions.arguments().size() != 1)
 	{
@@ -67,6 +68,13 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
+	if (programOptions.option('c') && programOptions.option('l'))
+	{
+		cerr << "L-BFGS optimization (-l) cannot be used with correlation-based (-c)" <<
+			" selection" << endl;
+		return 1;
+	}
+	
 	double alphaThreshold = 1e-6;
 	if (programOptions.option('a'))
 		alphaThreshold = fsqueeze::parseString<double>(programOptions.optionValue('a'));
@@ -74,6 +82,10 @@ int main(int argc, char *argv[])
 	double gradientThreshold = 1e-20;
 	if (programOptions.option('g'))
 		gradientThreshold = fsqueeze::parseString<double>(programOptions.optionValue('g'));
+	
+	size_t fullOptimizationCycles = 0;
+	if (programOptions.option('l'))
+		fullOptimizationCycles = fsqueeze::parseString<size_t>(programOptions.optionValue('l'));
 	
 	size_t nFeatures = numeric_limits<size_t>::max();
 	if (programOptions.option('n'))
@@ -103,7 +115,8 @@ int main(int argc, char *argv[])
 	if (programOptions.option('c'))
 		fsqueeze::corrFeatureSelection(ds, logger, minCorrelation, nFeatures);
 	else if (programOptions.option('f'))
-		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures);
+		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
+			fullOptimizationCycles);
 	else
 		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
 			programOptions.option('o'));

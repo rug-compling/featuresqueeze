@@ -279,15 +279,13 @@ Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet, FeatureSet const 
 	int r = lbfgs(dataSet.nFeatures(), x, 0, lbfgs_maxent_evaluate, lbfgs_maxent_progress,
 		const_cast<void *>(reinterpret_cast<void const *>(&evalData)), &param);
 
-	cerr << "r: " << r << endl;
-//	cerr << LBFGSERR_ROUNDING_ERROR << endl;
+	if (r != 0)
+		throw runtime_error("Optimization finished unsuccessfully: " + r);
 
 	Eigen::VectorXd weights(dataSet.nFeatures());
 	
 	for (int i = 0; i < weights.size(); ++i)
 		weights[i] = x[i];
-	
-	cerr << "ngram: " << x[3833] << endl;
 	
 	lbfgs_free(x);
 	
@@ -362,8 +360,8 @@ int lbfgs_maxent_progress(void *instance, const lbfgsfloatval_t *x, const lbfgsf
 	const lbfgsfloatval_t fx, const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
 	const lbfgsfloatval_t step, int n, int k, int ls)
 {
-	cerr << "lbfgs iteration: " << k << endl;
-	cerr << "fx = " << fx << endl;
+	//cerr << "lbfgs iteration: " << k << endl;
+	//cerr << "fx = " << fx << endl;
 	
 	return 0;
 }
