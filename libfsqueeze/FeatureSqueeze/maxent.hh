@@ -67,6 +67,9 @@ FeatureSet activeFeatures(std::vector<FeatureSet> const &contextActiveFeatures);
 void adjustModel(DataSet const &dataSet, size_t feature, double alpha,
 	Sums *sums, Zs *zs);
 
+void adjustModelFull(DataSet const &dataSet, FeatureSet const &featureSet,
+	Eigen::VectorXd const &lambdas, Sums *sums, Zs *zs);
+
 /*
  * Calculate the gain of a model after changing a feature weight from zero
  * to non-zero.

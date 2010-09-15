@@ -60,6 +60,34 @@ void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
 	}
 }
 
+void fsqueeze::adjustModelFull(DataSet const &dataSet, FeatureSet const &featureSet,
+	Eigen::VectorXd const &lambdas, Sums *sums, Zs *zs)
+{
+	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+	size_t i = 0;
+	while (ctxIter != dataSet.contexts().end())
+	{
+		(*zs)[i] = 0.0;
+		
+		FeatureValues const &featureVals = ctxIter->featureValues();
+		for (int j = 0; j < featureVals.outerSize(); ++j)
+		{
+			double sum = 0.0;
+			
+			for (FeatureValues::InnerIterator fIter(featureVals, j);
+					fIter; ++fIter)
+				if (featureSet.find(fIter.index()) != featureSet.end())
+					sum += fIter.value() * lambdas[fIter.index()];
+			
+			sum = exp(sum);
+			(*sums)[i][j] = sum;
+			(*zs)[i] += sum;
+		}
+		
+		++ctxIter; ++i;
+	}
+}
+
 double fsqueeze::calcGain(DataSet const &dataSet,
 	Sums const &sums,
 	Zs const &zs,
