@@ -1,15 +1,34 @@
 cmake_minimum_required(VERSION 2.6)
 project(featuresqueeze)
 
+include (CheckIncludeFile)
+
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Release)
 endif (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 
 list(APPEND CMAKE_MODULE_PATH "${featuresqueeze_SOURCE_DIR}/cmake")
 
+# SSE/SSE2
+set(CMAKE_FEATURESQUEEZE_HAS_SSE 1)
+set(DISABLE_SSE2 OFF CACHE BOOL "Compilation *without* SSE2/MMX extensions")
+mark_as_advanced(DISABLE_SSE2)
+if(DISABLE_SSE2)
+	set(CMAKE_FEATURESQUEEZE_HAS_SSE 0)
+endif(DISABLE_SSE2)
+
 include_directories(${featuresqueeze_SOURCE_DIR}/libfsqueeze)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wno-long-long")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wno-long-long -DUSE_SSE")
+
+if (CMAKE_FEATURESQUEEZE_HAS_SSE)
+	CHECK_INCLUDE_FILE("emmintrin.h" HAVE_EMMINTRIN_H)
+	
+	if (HAVE_EMMINTRIN_H)
+		set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_SSE -DHAVE_EMMINTRIN_H")
+		set (CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DUSE_SSE -DHAVE_EMMINTRIN_H")		
+	endif()
+endif()
 
 # OpenMP currently deadlocks on OS X.
 if (NOT APPLE)
