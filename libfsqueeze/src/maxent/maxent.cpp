@@ -306,25 +306,26 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, 
 	FeatureSet const *featureSet = evalData->featureSet;
 
 	Eigen::VectorXd const &expVals = dataSet->expFeatureValues();
-	for (int i = 0; i < n; ++ i)
+	for (int i = 0; i < n; ++i)
 		if (featureSet->find(i) != featureSet->end())
 			g[i] = -expVals[i];
 
 	lbfgsfloatval_t ll = 0.0;
-		
-	ContextVector::const_iterator ctxIter = dataSet->contexts().begin();
-	size_t i = 0;
-	while (ctxIter != dataSet->contexts().end())
+
+	ContextVector const &ctxs = dataSet->contexts();
+
+	#pragma omp parallel for
+	for (int i = 0; i < ctxs.size(); ++i)
 	{
+		lbfgsfloatval_t ctxLl = 0.0;
+
 		// Skip contexts that have a probability of zero. If we allow such
 		// contexts, we can not calculate empirical p(y|x).
-		if (ctxIter->prob() == 0.0) {
-			++ctxIter; ++i;
+		if (ctxs[i].prob() == 0.0)
 			continue;
-		}
 
-		FeatureValues const &featureVals = ctxIter->featureValues();
-		int nEvents = ctxIter->eventProbs().size();
+		FeatureValues const &featureVals = ctxs[i].featureValues();
+		int nEvents = ctxs[i].eventProbs().size();
 		
 		Eigen::VectorXd sums = Eigen::VectorXd::Zero(nEvents);
 		double z = 0.0;
@@ -347,16 +348,18 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, 
 			double pyx = p_yx(sums[j], z);
 			
 			// Update log-likelihood of the model.
-			ll += ctxIter->eventProbs()[j] * log(pyx);
+			ctxLl += ctxs[i].eventProbs()[j] * log(pyx);
 			
 			// Contribution of this context to p(f).
 			for (FeatureValues::InnerIterator fIter(featureVals, j);
 					fIter; ++fIter)
 				if (featureSet->find(fIter.index()) != featureSet->end())
-					g[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
+					#pragma omp atomic
+					g[fIter.index()] += ctxs[i].prob() * pyx * fIter.value();
 		}
-		
-		++ctxIter; ++i;
+
+		#pragma omp atomic
+		ll += ctxLl;
 	}
 	
 	return -ll;
