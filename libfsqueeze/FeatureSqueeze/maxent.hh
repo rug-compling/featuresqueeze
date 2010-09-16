@@ -30,6 +30,7 @@
 #include <Eigen/Core>
 
 #include "DataSet.hh"
+#include "selection.hh"
 #include "util.hh"
 
 namespace fsqueeze
@@ -115,7 +116,8 @@ Zs initialZs(DataSet const &ds);
  */
 Sums initialSums(DataSet const &ds);
 
-Eigen::VectorXd lbfgs_maxent(DataSet const &dataSet, FeatureSet const &featureSet);
+Eigen::VectorXd lbfgs_maxent(DataSet const &dataSet, FeatureSet const &featureSet,
+	SelectedFeatureAlphas const &selectedFeatureAlphas);
 
 /**
  * Calculate the probability p(y|x) based on sum and normalization z.

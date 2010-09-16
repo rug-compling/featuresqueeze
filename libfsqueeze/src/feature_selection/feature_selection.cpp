@@ -350,7 +350,8 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 		
 		if (fullOptimizationCycles != 0 &&
 				selectedFeatures.size() % fullOptimizationCycles == 0) {
-			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures);
+			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures,
+				selectedFeatureAlphas);
 
 			// Recalculate Zs and sums
 			adjustModelFull(dataSet, selectedFeatures, lambdas, &sums, &zs);
@@ -453,7 +454,8 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 
 		if (fullOptimizationCycles != 0 &&
 				selectedFeatures.size() % fullOptimizationCycles == 0) {
-			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures);
+			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures,
+				selectedFeatureAlphas);
 
 			// Recalculate Zs and sums
 			adjustModelFull(dataSet, selectedFeatures, lambdas, &sums, &zs);

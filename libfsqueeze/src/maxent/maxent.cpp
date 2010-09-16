@@ -268,9 +268,15 @@ struct EvaluateData
 	FeatureSet const *featureSet;
 };
 
-Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet, FeatureSet const &featureSet)
+Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet, FeatureSet const &featureSet,
+	SelectedFeatureAlphas const &selectedFeatureAlphas)
 {
 	lbfgsfloatval_t *x = lbfgs_malloc(dataSet.nFeatures());
+
+	// Start with weights estimated using single-weight optimizations.
+	for (SelectedFeatureAlphas::const_iterator iter = selectedFeatureAlphas.begin();
+			iter != selectedFeatureAlphas.end(); ++iter)
+		x[iter->first] = iter->second;
 
 	lbfgs_parameter_t param;
 	lbfgs_parameter_init(&param);

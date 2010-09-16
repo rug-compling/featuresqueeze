@@ -10,6 +10,7 @@
 #include <FeatureSqueeze/functional.hh>
 #include <FeatureSqueeze/lbfgs.h>
 #include <FeatureSqueeze/maxent.hh>
+#include <FeatureSqueeze/selection.hh>
 
 using namespace std;
 using namespace fsqueeze;
