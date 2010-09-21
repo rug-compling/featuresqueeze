@@ -28,362 +28,381 @@
 // Active features in at least one context.
 FeatureSet fsqueeze::activeFeatures(vector<FeatureSet> const &contextActiveFeatures)
 {
-	FeatureSet active;
-	
-	for (vector<FeatureSet>::const_iterator ctxIter = contextActiveFeatures.begin();
-			ctxIter != contextActiveFeatures.end(); ++ctxIter)
-		active.insert(ctxIter->begin(), ctxIter->end());
-	
-	return active;
+  FeatureSet active;
+  
+  for (vector<FeatureSet>::const_iterator ctxIter = contextActiveFeatures.begin();
+      ctxIter != contextActiveFeatures.end(); ++ctxIter)
+    active.insert(ctxIter->begin(), ctxIter->end());
+  
+  return active;
 }
 
 void fsqueeze::adjustModel(DataSet const &dataSet, size_t feature,
-	double alpha, Sums *sums, Zs *zs)
+  double alpha, Sums *sums, Zs *zs)
 {
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	size_t i = 0;
-	while (ctxIter != dataSet.contexts().end())
-	{
-		FeatureValues const &featureVals = ctxIter->featureValues();
-		for (int j = 0; j < featureVals.outerSize(); ++j)
-		{
-			double fVal = featureVals.coeff(j, feature);
-			if (fVal != 0.0)
-			{
-				(*zs)[i] -= (*sums)[i][j];
-				(*sums)[i][j] *= exp(alpha * fVal);
-				(*zs)[i] += (*sums)[i][j];
-			}			
-		}
-		
-		++ctxIter; ++i;
-	}
+  ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+  size_t i = 0;
+  while (ctxIter != dataSet.contexts().end())
+  {
+    FeatureValues const &featureVals = ctxIter->featureValues();
+    for (int j = 0; j < featureVals.outerSize(); ++j)
+    {
+      double fVal = featureVals.coeff(j, feature);
+      if (fVal != 0.0)
+      {
+        (*zs)[i] -= (*sums)[i][j];
+        (*sums)[i][j] *= exp(alpha * fVal);
+        (*zs)[i] += (*sums)[i][j];
+      }      
+    }
+    
+    ++ctxIter; ++i;
+  }
 }
 
 void fsqueeze::adjustModelFull(DataSet const &dataSet, FeatureSet const &featureSet,
-	Eigen::VectorXd const &lambdas, Sums *sums, Zs *zs)
+  Eigen::VectorXd const &lambdas, Sums *sums, Zs *zs)
 {
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	size_t i = 0;
-	while (ctxIter != dataSet.contexts().end())
-	{
-		(*zs)[i] = 0.0;
-		
-		FeatureValues const &featureVals = ctxIter->featureValues();
-		for (int j = 0; j < featureVals.outerSize(); ++j)
-		{
-			double sum = 0.0;
-			
-			for (FeatureValues::InnerIterator fIter(featureVals, j);
-					fIter; ++fIter)
-				if (featureSet.find(fIter.index()) != featureSet.end())
-					sum += fIter.value() * lambdas[fIter.index()];
-			
-			sum = exp(sum);
-			(*sums)[i][j] = sum;
-			(*zs)[i] += sum;
-		}
-		
-		++ctxIter; ++i;
-	}
+  ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+  size_t i = 0;
+  while (ctxIter != dataSet.contexts().end())
+  {
+    (*zs)[i] = 0.0;
+    
+    FeatureValues const &featureVals = ctxIter->featureValues();
+    for (int j = 0; j < featureVals.outerSize(); ++j)
+    {
+      double sum = 0.0;
+      
+      for (FeatureValues::InnerIterator fIter(featureVals, j);
+          fIter; ++fIter)
+        if (featureSet.find(fIter.index()) != featureSet.end())
+          sum += fIter.value() * lambdas[fIter.index()];
+      
+      sum = exp(sum);
+      (*sums)[i][j] = sum;
+      (*zs)[i] += sum;
+    }
+    
+    ++ctxIter; ++i;
+  }
 }
 
 double fsqueeze::calcGain(DataSet const &dataSet,
-	Sums const &sums,
-	Zs const &zs,
-	size_t feature,
-	double alpha
+  Sums const &sums,
+  Zs const &zs,
+  size_t feature,
+  double alpha
 )
 {
-	double gainSum = 0.0;
-	ContextVector const &contexts = dataSet.contexts();
+  double gainSum = 0.0;
+  ContextVector const &contexts = dataSet.contexts();
 
-	#pragma omp parallel for
-	for (int i = 0; i < static_cast<int>(dataSet.contexts().size()); ++i)
-	{
-		double newZ = zf(contexts[i].featureValues(), sums[i], zs[i], feature, alpha);
-		double lg = contexts[i].prob() * log(newZ / zs[i]);
-		
-		#pragma omp atomic
-		gainSum -= lg;
-	}
-	
-	return gainSum + alpha * dataSet.expFeatureValues()[feature];
+  #pragma omp parallel for
+  for (int i = 0; i < static_cast<int>(dataSet.contexts().size()); ++i)
+  {
+    double newZ = zf(contexts[i].featureValues(), sums[i], zs[i], feature, alpha);
+    double lg = contexts[i].prob() * log(newZ / zs[i]);
+    
+    #pragma omp atomic
+    gainSum -= lg;
+  }
+  
+  return gainSum + alpha * dataSet.expFeatureValues()[feature];
 }
 
 // Calculate the gain of adding each feature.
 OrderedGains fsqueeze::calcGains(DataSet const &dataSet,
-	vector<FeatureSet> const &contextActiveFeatures,
-	Sums const &sums,
-	Zs const &zs,
-	FeatureWeights const &alphas
+  vector<FeatureSet> const &contextActiveFeatures,
+  Sums const &sums,
+  Zs const &zs,
+  FeatureWeights const &alphas
 )
 {
-	GainMap gainSum;
-	
-	ContextVector const &contexts = dataSet.contexts();
-	
-	for (int i = 0; i < static_cast<int>(dataSet.contexts().size()); ++i)
-	{
-		for (FeatureSet::const_iterator fsIter = contextActiveFeatures[i].begin();
-			fsIter != contextActiveFeatures[i].end(); ++fsIter)
-		{
-			int f = *fsIter;
+  GainMap gainSum;
+  
+  ContextVector const &contexts = dataSet.contexts();
+  
+  for (int i = 0; i < static_cast<int>(dataSet.contexts().size()); ++i)
+  {
+    for (FeatureSet::const_iterator fsIter = contextActiveFeatures[i].begin();
+      fsIter != contextActiveFeatures[i].end(); ++fsIter)
+    {
+      int f = *fsIter;
 
-			double newZ = zf(contexts[i].featureValues(), sums[i], zs[i], f,
-				alphas[f]);
-			
-			double lg = contexts[i].prob() * log(newZ / zs[i]);
-			
-			gainSum[f] -= lg;
-		}		
-	}
-	
-	OrderedGains gains;
-	for (int f = 0; f < alphas.rows(); ++f)
-		gains.insert(make_pair(f, gainSum[f] + alphas[f] *
-			dataSet.expFeatureValues()[f]));
-	
-	return gains;
+      double newZ = zf(contexts[i].featureValues(), sums[i], zs[i], f,
+        alphas[f]);
+      
+      double lg = contexts[i].prob() * log(newZ / zs[i]);
+      
+      gainSum[f] -= lg;
+    }    
+  }
+  
+  OrderedGains gains;
+  for (int f = 0; f < alphas.rows(); ++f)
+    gains.insert(make_pair(f, gainSum[f] + alphas[f] *
+      dataSet.expFeatureValues()[f]));
+  
+  return gains;
 }
 
 vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
-	FeatureSet const &excludedFeatures, Sums const &sums, Zs const &zs)
+  FeatureSet const &excludedFeatures, Sums const &sums, Zs const &zs)
 {
-	vector<FeatureSet> ctxActive;
-	
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	size_t i = 0;
-	while (ctxIter != dataSet.contexts().end())
-	{
-		FeatureSet active;
+  vector<FeatureSet> ctxActive;
+  
+  ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+  size_t i = 0;
+  while (ctxIter != dataSet.contexts().end())
+  {
+    FeatureSet active;
 
-		// This context can not have active features if its probability is zero.
-		if (ctxIter->prob() == 0.0)
-		{
-			ctxActive.push_back(active);
-			++ctxIter; ++i;	
-			continue;
-		}
+    // This context can not have active features if its probability is zero.
+    if (ctxIter->prob() == 0.0)
+    {
+      ctxActive.push_back(active);
+      ++ctxIter; ++i;  
+      continue;
+    }
 
-		FeatureValues const &featureVals = ctxIter->featureValues();
-		for (int j = 0; j < featureVals.outerSize(); ++j)
-		{
-			// This event can not have active features if its probability is zero.
-			if (p_yx(sums[i][j], zs[i]) == 0.0)
-				continue;
+    FeatureValues const &featureVals = ctxIter->featureValues();
+    for (int j = 0; j < featureVals.outerSize(); ++j)
+    {
+      // This event can not have active features if its probability is zero.
+      if (p_yx(sums[i][j], zs[i]) == 0.0)
+        continue;
 
-			for (FeatureValues::InnerIterator fIter(featureVals, j);
-					fIter; ++fIter)
-				if (excludedFeatures.find(fIter.index()) == excludedFeatures.end() &&
-						fIter.value() != 0.0)
-					active.insert(fIter.index());
-		}
-		
-		ctxActive.push_back(active);
-		
-		++ctxIter; ++i;
-	}
-	
-	return ctxActive;
+      for (FeatureValues::InnerIterator fIter(featureVals, j);
+          fIter; ++fIter)
+        if (excludedFeatures.find(fIter.index()) == excludedFeatures.end() &&
+            fIter.value() != 0.0)
+          active.insert(fIter.index());
+    }
+    
+    ctxActive.push_back(active);
+    
+    ++ctxIter; ++i;
+  }
+  
+  return ctxActive;
 }
 
 ExpectedValues fsqueeze::expFeatureValues(DsFeatureMap const &features, int nFeatures)
 {
-	ExpectedValues expVals(nFeatures);
-	
-	for (DsFeatureMap::const_iterator fIter = features.begin();
-		fIter != features.end(); ++fIter)
-	{
-		double expVal = 0.0;
-		for (std::vector<std::pair<double, double> >::const_iterator occIter =
-				fIter->second.begin(); occIter != fIter->second.end();
-				++occIter)
-			expVal += occIter->first * occIter->second;
-		expVals[fIter->first] = expVal;
-	}
-	
-	return expVals;
+  ExpectedValues expVals(nFeatures);
+  
+  for (DsFeatureMap::const_iterator fIter = features.begin();
+    fIter != features.end(); ++fIter)
+  {
+    double expVal = 0.0;
+    for (std::vector<std::pair<double, double> >::const_iterator occIter =
+        fIter->second.begin(); occIter != fIter->second.end();
+        ++occIter)
+      expVal += occIter->first * occIter->second;
+    expVals[fIter->first] = expVal;
+  }
+  
+  return expVals;
 }
 
 ExpectedValues fsqueeze::expModelFeatureValues(
-	DataSet const &dataSet,
-	Sums const &sums, Zs const &zs)
+  DataSet const &dataSet,
+  Sums const &sums, Zs const &zs)
 {
-	ExpectedValues expVals(dataSet.nFeatures());
+  ExpectedValues expVals(dataSet.nFeatures());
 
-	ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
-	size_t i = 0;
-	while (ctxIter != dataSet.contexts().end())
-	{
-		FeatureValues const &featureVals = ctxIter->featureValues();
-		
-		for (int j = 0; j < featureVals.outerSize(); ++j)
-		{
-			double pyx = p_yx(sums[i][j], zs[i]);
-			
-			for (FeatureValues::InnerIterator fIter(featureVals, j);
-					fIter; ++fIter)
-				expVals[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
-		}
-		
-		++ctxIter; ++i;
-	}
-	
-	return expVals;
+  ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
+  size_t i = 0;
+  while (ctxIter != dataSet.contexts().end())
+  {
+    FeatureValues const &featureVals = ctxIter->featureValues();
+    
+    for (int j = 0; j < featureVals.outerSize(); ++j)
+    {
+      double pyx = p_yx(sums[i][j], zs[i]);
+      
+      for (FeatureValues::InnerIterator fIter(featureVals, j);
+          fIter; ++fIter)
+        expVals[fIter.index()] += ctxIter->prob() * pyx * fIter.value();
+    }
+    
+    ++ctxIter; ++i;
+  }
+  
+  return expVals;
 }
 
 Zs fsqueeze::initialZs(DataSet const &ds)
 {
-	size_t nContexts = ds.contexts().size();
-	ContextVector const &contexts = ds.contexts();
-	
-	Zs zs(nContexts);
-	for (size_t i = 0; i < nContexts; ++i)
-		zs[i] = contexts[i].eventProbs().size();
-	
-	return zs;
+  size_t nContexts = ds.contexts().size();
+  ContextVector const &contexts = ds.contexts();
+  
+  Zs zs(nContexts);
+  for (size_t i = 0; i < nContexts; ++i)
+    zs[i] = contexts[i].eventProbs().size();
+  
+  return zs;
 }
 
 Sums fsqueeze::initialSums(DataSet const &ds)
 {
-	Sums sums;
+  Sums sums;
 
-	transform(ds.contexts().begin(), ds.contexts().end(), back_inserter(sums),
-		makeSumVector());
-	
-	return sums;
+  transform(ds.contexts().begin(), ds.contexts().end(), back_inserter(sums),
+    makeSumVector());
+  
+  return sums;
 }
 
-lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, lbfgsfloatval_t *g,
-	int const n, lbfgsfloatval_t const step);
-	
-int lbfgs_maxent_progress(void *instance, const lbfgsfloatval_t *x, const lbfgsfloatval_t *g,
-	const lbfgsfloatval_t fx, const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
-	const lbfgsfloatval_t step, int n, int k, int ls);
+lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x,
+  lbfgsfloatval_t *g, int const n, lbfgsfloatval_t const step);
+
+int lbfgs_maxent_progress(void *instance, const lbfgsfloatval_t *x,
+  const lbfgsfloatval_t *g, const lbfgsfloatval_t fx,
+  const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
+  const lbfgsfloatval_t step, int n, int k, int ls);
 
 struct EvaluateData
 {
-	DataSet const *dataSet;
-	FeatureSet const *featureSet;
+  DataSet const *dataSet;
+  FeatureSet const *featureSet;
 };
 
-Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet, FeatureSet const &featureSet,
-	SelectedFeatureAlphas const &selectedFeatureAlphas)
+Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet,
+  FeatureSet const &featureSet,
+  SelectedFeatureAlphas const &selectedFeatureAlphas)
 {
-	lbfgsfloatval_t *x = lbfgs_malloc(dataSet.nFeatures());
+  lbfgsfloatval_t *x = lbfgs_malloc(dataSet.nFeatures());
 
-	// Start with weights estimated using single-weight optimizations.
-	for (SelectedFeatureAlphas::const_iterator iter = selectedFeatureAlphas.begin();
-			iter != selectedFeatureAlphas.end(); ++iter)
-		x[iter->first] = iter->second;
+  // Start with weights estimated using single-weight optimizations.
+  for (SelectedFeatureAlphas::const_iterator iter = selectedFeatureAlphas.begin();
+      iter != selectedFeatureAlphas.end(); ++iter)
+    x[iter->first] = iter->second;
 
-	lbfgs_parameter_t param;
-	lbfgs_parameter_init(&param);
-	
-	EvaluateData evalData = {&dataSet, &featureSet};
-	int r = lbfgs(dataSet.nFeatures(), x, 0, lbfgs_maxent_evaluate, lbfgs_maxent_progress,
-		const_cast<void *>(reinterpret_cast<void const *>(&evalData)), &param);
+  lbfgs_parameter_t param;
+  lbfgs_parameter_init(&param);
+  
+  EvaluateData evalData = {&dataSet, &featureSet};
+  int r = lbfgs(dataSet.nFeatures(), x, 0, lbfgs_maxent_evaluate, lbfgs_maxent_progress,
+    const_cast<void *>(reinterpret_cast<void const *>(&evalData)), &param);
 
-	if (r != 0)
-		throw runtime_error("Optimization finished unsuccessfully: " + r);
+  if (r != 0)
+    throw runtime_error("Optimization finished unsuccessfully: " + r);
 
-	Eigen::VectorXd weights(dataSet.nFeatures());
-	
-	for (int i = 0; i < weights.size(); ++i)
-		weights[i] = x[i];
-	
-	lbfgs_free(x);
-	
-	return weights;
+  Eigen::VectorXd weights(dataSet.nFeatures());
+  
+  for (int i = 0; i < weights.size(); ++i)
+    weights[i] = x[i];
+  
+  lbfgs_free(x);
+  
+  return weights;
 }
 
-lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x, lbfgsfloatval_t *g,
-	int const n, lbfgsfloatval_t const step)
+lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x,
+  lbfgsfloatval_t *g, int const n, lbfgsfloatval_t const step)
 {
-	EvaluateData const *evalData = reinterpret_cast<EvaluateData const *>(instance);
-	DataSet const *dataSet = evalData->dataSet;
-	FeatureSet const *featureSet = evalData->featureSet;
+  // XXX - testing
+  double sigmaSq =  1.0 / 1000;
 
-	Eigen::VectorXd const &expVals = dataSet->expFeatureValues();
-	for (int i = 0; i < n; ++i)
-		if (featureSet->find(i) != featureSet->end())
-			g[i] = -expVals[i];
+  EvaluateData const *evalData = reinterpret_cast<EvaluateData const *>(instance);
+  DataSet const *dataSet = evalData->dataSet;
+  FeatureSet const *featureSet = evalData->featureSet;
 
-	lbfgsfloatval_t ll = 0.0;
+  Eigen::VectorXd const &expVals = dataSet->expFeatureValues();
+  for (int i = 0; i < n; ++i)
+    if (featureSet->find(i) != featureSet->end())
+      g[i] = -expVals[i];
 
-	ContextVector const &ctxs = dataSet->contexts();
+  lbfgsfloatval_t ll = 0.0;
 
-	#pragma omp parallel for
-	for (int i = 0; i < ctxs.size(); ++i)
-	{
-		lbfgsfloatval_t ctxLl = 0.0;
+  ContextVector const &ctxs = dataSet->contexts();
 
-		// Skip contexts that have a probability of zero. If we allow such
-		// contexts, we can not calculate empirical p(y|x).
-		if (ctxs[i].prob() == 0.0)
-			continue;
+  #pragma omp parallel for
+  for (int i = 0; i < ctxs.size(); ++i)
+  {
+    lbfgsfloatval_t ctxLl = 0.0;
 
-		FeatureValues const &featureVals = ctxs[i].featureValues();
-		int nEvents = ctxs[i].eventProbs().size();
-		
-		Eigen::VectorXd sums = Eigen::VectorXd::Zero(nEvents);
-		double z = 0.0;
-		
-		// Calculate unnormalized probabilities, and the normalizer (Z(x)).
-		for (int j = 0; j < featureVals.outerSize(); ++j)
-		{
-			for (FeatureValues::InnerIterator fIter(featureVals, j);
-					fIter; ++fIter)
-				if (featureSet->find(fIter.index()) != featureSet->end())
-					sums[j] += x[fIter.index()] * fIter.value();
+    // Skip contexts that have a probability of zero. If we allow such
+    // contexts, we can not calculate empirical p(y|x).
+    if (ctxs[i].prob() == 0.0)
+      continue;
 
-			sums[j] = exp(sums[j]);
-			z += sums[j];
-		}
-		
-		for (int j = 0; j < featureVals.outerSize(); ++j)
-		{
-			// Conditional probability of the event y, given the context x.
-			double pyx = p_yx(sums[j], z);
-			
-			// Update log-likelihood of the model.
-			ctxLl += ctxs[i].eventProbs()[j] * log(pyx);
-			
-			// Contribution of this context to p(f).
-			for (FeatureValues::InnerIterator fIter(featureVals, j);
-					fIter; ++fIter)
-				if (featureSet->find(fIter.index()) != featureSet->end())
-					#pragma omp atomic
-					g[fIter.index()] += ctxs[i].prob() * pyx * fIter.value();
-		}
+    FeatureValues const &featureVals = ctxs[i].featureValues();
+    int nEvents = ctxs[i].eventProbs().size();
+    
+    Eigen::VectorXd sums = Eigen::VectorXd::Zero(nEvents);
+    double z = 0.0;
+    
+    // Calculate unnormalized probabilities, and the normalizer (Z(x)).
+    for (int j = 0; j < featureVals.outerSize(); ++j)
+    {
+      for (FeatureValues::InnerIterator fIter(featureVals, j);
+          fIter; ++fIter)
+        if (featureSet->find(fIter.index()) != featureSet->end())
+          sums[j] += x[fIter.index()] * fIter.value();
 
-		#pragma omp atomic
-		ll += ctxLl;
-	}
-	
-	return -ll;
+      sums[j] = exp(sums[j]);
+      z += sums[j];
+    }
+    
+    for (int j = 0; j < featureVals.outerSize(); ++j)
+    {
+      // Conditional probability of the event y, given the context x.
+      double pyx = p_yx(sums[j], z);
+      
+      // Update log-likelihood of the model.
+      ctxLl += ctxs[i].eventProbs()[j] * log(pyx);
+      
+      // Contribution of this context to p(f).
+      for (FeatureValues::InnerIterator fIter(featureVals, j);
+          fIter; ++fIter)
+        if (featureSet->find(fIter.index()) != featureSet->end())
+          #pragma omp atomic
+          g[fIter.index()] += ctxs[i].prob() * pyx * fIter.value();
+    }
+
+    #pragma omp atomic
+    ll += ctxLl;
+  }
+
+  // Gaussian prior
+  if (sigmaSq != 0.0) {
+    double fSqSum = 0.0;
+
+    for (FeatureSet::const_iterator iter = featureSet->begin();
+      iter != featureSet->end(); ++iter)
+    {
+      fSqSum += pow(x[*iter], 2.0);
+      g[*iter] += x[*iter] / sigmaSq;
+    }
+
+    ll -= fSqSum / (2.0 * sigmaSq);
+  }
+  
+  return -ll;
 }
 
 int lbfgs_maxent_progress(void *instance, const lbfgsfloatval_t *x, const lbfgsfloatval_t *g,
-	const lbfgsfloatval_t fx, const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
-	const lbfgsfloatval_t step, int n, int k, int ls)
+  const lbfgsfloatval_t fx, const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
+  const lbfgsfloatval_t step, int n, int k, int ls)
 {
-	//cerr << "lbfgs iteration: " << k << endl;
-	//cerr << "fx = " << fx << endl;
-	
-	return 0;
+  //cerr << "lbfgs iteration: " << k << endl;
+  //cerr << "fx = " << fx << endl;
+  
+  return 0;
 }
 
 double fsqueeze::zf(FeatureValues const &featureValues, Sum const &ctxSums,
-	double z, size_t feature, double alpha)
+  double z, size_t feature, double alpha)
 {
-	for (int i = 0; i < featureValues.outerSize(); ++i)
-	{
-		double fVal = featureValues.coeff(i, feature);
-		if (fVal != 0.0)
-			z = z - ctxSums[i] + ctxSums[i] * exp(alpha * fVal);
-	}
-	
-	return z;
+  for (int i = 0; i < featureValues.outerSize(); ++i)
+  {
+    double fVal = featureValues.coeff(i, feature);
+    if (fVal != 0.0)
+      z = z - ctxSums[i] + ctxSums[i] * exp(alpha * fVal);
+  }
+  
+  return z;
 }
