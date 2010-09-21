@@ -304,7 +304,7 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x,
   lbfgsfloatval_t *g, int const n, lbfgsfloatval_t const step)
 {
   // XXX - testing
-  double sigmaSq =  1.0 / 1000;
+  double sigmaSq =  1000.0;
 
   EvaluateData const *evalData = reinterpret_cast<EvaluateData const *>(instance);
   DataSet const *dataSet = evalData->dataSet;
