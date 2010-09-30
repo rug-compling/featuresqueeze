@@ -10,12 +10,11 @@ endif (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 list(APPEND CMAKE_MODULE_PATH "${featuresqueeze_SOURCE_DIR}/cmake")
 
 # SSE/SSE2
-set(CMAKE_FEATURESQUEEZE_HAS_SSE 1)
-set(DISABLE_SSE2 OFF CACHE BOOL "Compilation *without* SSE2/MMX extensions")
-mark_as_advanced(DISABLE_SSE2)
-if(DISABLE_SSE2)
-	set(CMAKE_FEATURESQUEEZE_HAS_SSE 0)
-endif(DISABLE_SSE2)
+set(CMAKE_FEATURESQUEEZE_HAS_SSE 0)
+set(ENABLE_SSE2 OFF CACHE BOOL "Compilation with SSE2/MMX extensions")
+if(ENABLE_SSE2)
+	set(CMAKE_FEATURESQUEEZE_HAS_SSE 1) 
+endif()
 
 include_directories(${featuresqueeze_SOURCE_DIR}/libfsqueeze)
 
