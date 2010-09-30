@@ -369,16 +369,18 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x,
 
   // Gaussian prior
   if (sigmaSq != 0.0) {
+    double sMult = 1.0 / sigmaSq;
+
     double fSqSum = 0.0;
 
     for (FeatureSet::const_iterator iter = featureSet->begin();
       iter != featureSet->end(); ++iter)
     {
       fSqSum += pow(x[*iter], 2.0);
-      g[*iter] += x[*iter] / sigmaSq;
+      g[*iter] += x[*iter] * sMult;
     }
 
-    ll -= fSqSum / (2.0 * sigmaSq);
+    ll -= fSqSum * 0.5 * sMult;
   }
   
   return -ll;
