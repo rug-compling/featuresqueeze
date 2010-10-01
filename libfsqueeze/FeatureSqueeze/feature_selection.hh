@@ -38,7 +38,7 @@ namespace std {
 
 inline std::ostream &operator<<(std::ostream &out, std::pair<size_t, double> const &p)
 {
-	return out << p.second << "#" << p.first;
+  return out << p.second << "#" << p.first;
 }
 
 }
@@ -59,13 +59,13 @@ typedef std::tr1::unordered_map<size_t, double> GainDeltas;
  * @logger Logger for printing output
  * @alphaThreshold Threshold to determine convergence of alpha values
  * @gainThreshold Threshold to determine the stopping point of the feature 
- *	selection cycle.
+ *  selection cycle.
  * @nFeatures Maximum number of features.
  */
 SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger, 
-	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
-	size_t nFeatures = std::numeric_limits<size_t>::max(),
-	size_t fullOptimizationCycles = 0, size_t fullOptimizationExpBase = 0);
+  double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
+  size_t nFeatures = std::numeric_limits<size_t>::max(),
+  size_t fullOptimizationCycles = 0, size_t fullOptimizationExpBase = 0);
 
 /**
  * Select features based on a dataset.
@@ -74,13 +74,13 @@ SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger,
  * @logger Logger for printing output
  * @alphaThreshold Threshold to determine convergence of alpha values
  * @gainThreshold Threshold to determine the stopping point of the feature 
- *	selection cycle.
+ *  selection cycle.
  * @nFeatures Maximum number of features.
  */
 SelectedFeatureAlphas featureSelection(DataSet const &ds, Logger logger,
-	double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
-	size_t nFeatures = std::numeric_limits<size_t>::max(),
-	bool detectOverlap = false, size_t fullOptimizationCycles = 50,
+  double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
+  size_t nFeatures = std::numeric_limits<size_t>::max(),
+  bool detectOverlap = false, size_t fullOptimizationCycles = 50,
   size_t fullOptimizationExpBase = 0);
 
 }
