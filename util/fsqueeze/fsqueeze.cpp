@@ -36,6 +36,7 @@ void usage(string const &programName)
 	cerr << "Usage: " << programName << " [OPTION] dataset" << endl << endl <<
 		"  -a val\t Alpha convergence threshold (default: 1e-6)" << endl <<
 		"  -c\t\t Correlation selection" << endl <<
+    "  -e n\t\t Apply L-BFGS optimization every n^t cycles (default: disabled)" << endl <<
 		"  -f\t\t Fast maxent selection (do not recalculate all gains)" << endl <<
 		"  -g val\t Gain threshold (default: 1e-20)" << endl <<
 		"  -l n\t\t Apply L-BFGS optimization every n cycles (default: disabled)" << endl <<
@@ -46,7 +47,7 @@ void usage(string const &programName)
 
 int main(int argc, char *argv[])
 {
-	fsqueeze::ProgramOptions programOptions(argc, argv, "a:cfg:l:n:or:");
+	fsqueeze::ProgramOptions programOptions(argc, argv, "a:ce:fg:l:n:or:");
 	
 	if (programOptions.arguments().size() != 1)
 	{
@@ -68,12 +69,19 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	if (programOptions.option('c') && programOptions.option('l'))
+	if (programOptions.option('c') &&
+    (programOptions.option('l') || programOptions.option('e')))
 	{
-		cerr << "L-BFGS optimization (-l) cannot be used with correlation-based (-c)" <<
+		cerr << "L-BFGS optimization cannot be used with correlation-based (-c)" <<
 			" selection" << endl;
 		return 1;
 	}
+
+  if (programOptions.option('e') && programOptions.option('l'))
+  {
+    cerr << "-e and -l cannot be used simultaneously" << endl;
+    return 1;
+  }
 	
 	double alphaThreshold = 1e-6;
 	if (programOptions.option('a'))
@@ -82,6 +90,11 @@ int main(int argc, char *argv[])
 	double gradientThreshold = 1e-20;
 	if (programOptions.option('g'))
 		gradientThreshold = fsqueeze::parseString<double>(programOptions.optionValue('g'));
+
+  size_t fullOptimizationExpBase = 0;
+  if (programOptions.option('e'))
+    fullOptimizationExpBase =
+      fsqueeze::parseString<size_t>(programOptions.optionValue('e'));
 	
 	size_t fullOptimizationCycles = 0;
 	if (programOptions.option('l'))
@@ -116,10 +129,10 @@ int main(int argc, char *argv[])
 		fsqueeze::corrFeatureSelection(ds, logger, minCorrelation, nFeatures);
 	else if (programOptions.option('f'))
 		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
-			fullOptimizationCycles);
+			fullOptimizationCycles, fullOptimizationExpBase);
 	else
 		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
-			programOptions.option('o'), fullOptimizationCycles);
+			programOptions.option('o'), fullOptimizationCycles, fullOptimizationExpBase);
 	
 	return 0;
 }

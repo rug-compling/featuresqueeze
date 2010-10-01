@@ -298,7 +298,8 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 	Logger logger, double alphaThreshold, double gainThreshold,
-	size_t nFeatures, bool detectOverlap, size_t fullOptimizationCycles)
+	size_t nFeatures, bool detectOverlap, size_t fullOptimizationCycles,
+  size_t fullOptimizationExpBase)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -347,9 +348,18 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 			"\t" << selected.third;
 		
 		logger.message() << "\n";
+
+    bool optimize = false;
+    if (fullOptimizationExpBase != 0.0) {
+      double fl = log(static_cast<double>(selectedFeatures.size())) /
+        log(fullOptimizationExpBase);
+      if (round(fl) == fl)
+        optimize = true;
+    } else if (fullOptimizationCycles != 0 &&
+  				selectedFeatures.size() % fullOptimizationCycles == 0)
+      optimize = true;
 		
-		if (fullOptimizationCycles != 0 &&
-				selectedFeatures.size() % fullOptimizationCycles == 0) {
+		if (optimize) {
 			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures,
 				selectedFeatureAlphas);
 
@@ -417,7 +427,7 @@ void fastSelectionStage(DataSet const &dataSet,
 
 SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 	Logger logger, double alphaThreshold, double gainThreshold, size_t nFeatures,
-	size_t fullOptimizationCycles)
+	size_t fullOptimizationCycles, size_t fullOptimizationExpBase)
 {
 	FeatureSet selectedFeatures;
 	SelectedFeatureAlphas selectedFeatureAlphas;
@@ -452,8 +462,17 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
 		logger.message() << selected.first << "\t" << selected.second <<
 			"\t" << selected.third << "\n";
 
-		if (fullOptimizationCycles != 0 &&
-				selectedFeatures.size() % fullOptimizationCycles == 0) {
+    bool optimize = false;
+    if (fullOptimizationExpBase != 0.0) {
+      double fl = log(static_cast<double>(selectedFeatures.size())) /
+        log(fullOptimizationExpBase);
+      if (round(fl) == fl)
+        optimize = true;
+    } else if (fullOptimizationCycles != 0 &&
+  				selectedFeatures.size() % fullOptimizationCycles == 0)
+      optimize = true;
+
+    if (optimize) {
 			Eigen::VectorXd lambdas = lbfgs_maxent(dataSet, selectedFeatures,
 				selectedFeatureAlphas);
 
