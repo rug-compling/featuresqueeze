@@ -50,6 +50,19 @@ typedef Eigen::VectorXd Gp;
 typedef Eigen::VectorXd Gpp;
 typedef std::tr1::unordered_map<size_t, double> GainDeltas;
 
+struct SelectionParameters {
+  SelectionParameters() : alphaThreshold(1e-10), gainThreshold(1e-20),
+    nFeatures(std::numeric_limits<size_t>::max()),
+    detectOverlap(false), fullOptimizationCycles(0),
+    fullOptimizationExpBase(0.0) {}
+  double alphaThreshold;
+  double gainThreshold;
+  size_t nFeatures;
+  bool detectOverlap;
+  size_t fullOptimizationCycles;
+  double fullOptimizationExpBase;
+};
+
 /**
  * Select features based on a dataset using the fast selection algorithm.
  * This algorithm assumes that gains of candidate features rarely increase
@@ -63,9 +76,7 @@ typedef std::tr1::unordered_map<size_t, double> GainDeltas;
  * @nFeatures Maximum number of features.
  */
 SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger, 
-  double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
-  size_t nFeatures = std::numeric_limits<size_t>::max(),
-  size_t fullOptimizationCycles = 0, size_t fullOptimizationExpBase = 0);
+    SelectionParameters const &param);
 
 /**
  * Select features based on a dataset.
@@ -78,10 +89,7 @@ SelectedFeatureAlphas fastFeatureSelection(DataSet const &ds, Logger logger,
  * @nFeatures Maximum number of features.
  */
 SelectedFeatureAlphas featureSelection(DataSet const &ds, Logger logger,
-  double alphaThreshold = 1e-10, double gainThreshold = 1e-10,
-  size_t nFeatures = std::numeric_limits<size_t>::max(),
-  bool detectOverlap = false, size_t fullOptimizationCycles = 50,
-  size_t fullOptimizationExpBase = 0);
+    SelectionParameters const &param);
 
 }
 

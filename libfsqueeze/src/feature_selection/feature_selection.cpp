@@ -297,9 +297,7 @@ OrderedGains fullSelectionStage(DataSet const &dataSet,
 }
 
 SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
-  Logger logger, double alphaThreshold, double gainThreshold,
-  size_t nFeatures, bool detectOverlap, size_t fullOptimizationCycles,
-  size_t fullOptimizationExpBase)
+  Logger logger,  SelectionParameters const &param)
 {
   FeatureSet selectedFeatures;
   SelectedFeatureAlphas selectedFeatureAlphas;
@@ -308,26 +306,26 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
   Sums sums = initialSums(dataSet);
   	
   OrderedGains prevGains;
-  while(selectedFeatures.size() < nFeatures &&
+  while(selectedFeatures.size() < param.nFeatures &&
   	selectedFeatures.size() < dataSet.features().size())	
   {
   	OrderedGains gains;
-  	if (detectOverlap)
-  		gains = fullSelectionStage(dataSet, alphaThreshold, &sums, &zs,
+  	if (param.detectOverlap)
+  		gains = fullSelectionStage(dataSet, param.alphaThreshold, &sums, &zs,
   			&selectedFeatures, &selectedFeatureAlphas);
   	else
-  		fullSelectionStage(dataSet, alphaThreshold, &sums, &zs,
+  		fullSelectionStage(dataSet, param.alphaThreshold, &sums, &zs,
   			&selectedFeatures, &selectedFeatureAlphas);
   	
   	if (selectedFeatureAlphas.size() == 0)
   		break;
   		
-  	if (detectOverlap)
+  	if (param.detectOverlap)
   	{
   		if (prevGains.size() != 0)
   		{
   			OrderedGains overlappingFs = findOverlappingFeatures(prevGains, gains,
-  				gainThreshold, true);
+  				param.gainThreshold, true);
   			copy(overlappingFs.begin(), overlappingFs.end(),
   				ostream_iterator<pair<size_t, double> >(logger.message(), "\t"));
   			logger.message() << "\n";
@@ -338,7 +336,7 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
 
   	Triple<size_t, double, double> selected = selectedFeatureAlphas.back();
   	
-  	if (selected.third < gainThreshold)
+  	if (selected.third < param.gainThreshold)
   	{
   		selectedFeatureAlphas.pop_back();
   		break;
@@ -350,13 +348,13 @@ SelectedFeatureAlphas fsqueeze::featureSelection(DataSet const &dataSet,
   	logger.message() << "\n";
 
     bool optimize = false;
-    if (fullOptimizationExpBase != 0.0) {
+    if (param.fullOptimizationExpBase != 0.0) {
       double fl = log(static_cast<double>(selectedFeatures.size())) /
-        log(fullOptimizationExpBase);
+        log(param.fullOptimizationExpBase);
       if (round(fl) == fl)
         optimize = true;
-    } else if (fullOptimizationCycles != 0 &&
-    			selectedFeatures.size() % fullOptimizationCycles == 0)
+    } else if (param.fullOptimizationCycles != 0 &&
+    			selectedFeatures.size() % param.fullOptimizationCycles == 0)
       optimize = true;
   	
   	if (optimize) {
@@ -426,8 +424,7 @@ void fastSelectionStage(DataSet const &dataSet,
 }
 
 SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
-  Logger logger, double alphaThreshold, double gainThreshold, size_t nFeatures,
-  size_t fullOptimizationCycles, size_t fullOptimizationExpBase)
+  Logger logger,  SelectionParameters const &param)
 {
   FeatureSet selectedFeatures;
   SelectedFeatureAlphas selectedFeatureAlphas;
@@ -436,8 +433,8 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
   Sums sums = initialSums(dataSet);
   
   // Start with a full selection stage to calculate the stage 2 model and gains.
-  OrderedGains gains = fullSelectionStage(dataSet, alphaThreshold, &sums, &zs,
-  	&selectedFeatures, &selectedFeatureAlphas);
+  OrderedGains gains = fullSelectionStage(dataSet, param.alphaThreshold, &sums,
+    &zs, &selectedFeatures, &selectedFeatureAlphas);
   OrderedGains::const_iterator gainIter = gains.begin();
   ++gainIter;
   gains.erase(gains.begin(), gainIter);
@@ -446,13 +443,13 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
   logger.message() << selected.first << "\t" << selected.second <<
   	"\t" << selected.third << "\n";
   
-  while(selectedFeatures.size() < nFeatures &&
+  while(selectedFeatures.size() < param.nFeatures &&
   	selectedFeatures.size() < dataSet.features().size())	
   {
-  	fastSelectionStage(dataSet, alphaThreshold, &sums, &zs,
+  	fastSelectionStage(dataSet, param.alphaThreshold, &sums, &zs,
   		&selectedFeatures, &selectedFeatureAlphas, &gains);
 
-  	if (selectedFeatureAlphas.back().third < gainThreshold)
+  	if (selectedFeatureAlphas.back().third < param.gainThreshold)
   	{
   		selectedFeatureAlphas.pop_back();
   		break;
@@ -463,13 +460,13 @@ SelectedFeatureAlphas fsqueeze::fastFeatureSelection(DataSet const &dataSet,
   		"\t" << selected.third << "\n";
 
     bool optimize = false;
-    if (fullOptimizationExpBase != 0.0) {
+    if (param.fullOptimizationExpBase != 0.0) {
       double fl = log(static_cast<double>(selectedFeatures.size())) /
-        log(fullOptimizationExpBase);
+        log(param.fullOptimizationExpBase);
       if (round(fl) == fl)
         optimize = true;
-    } else if (fullOptimizationCycles != 0 &&
-    			selectedFeatures.size() % fullOptimizationCycles == 0)
+    } else if (param.fullOptimizationCycles != 0 &&
+    			selectedFeatures.size() % param.fullOptimizationCycles == 0)
       optimize = true;
 
     if (optimize) {

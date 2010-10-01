@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Daniël de Kok
+ * Copyright (c) 2009, 2010 Daniël de Kok
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -82,27 +82,26 @@ int main(int argc, char *argv[])
     cerr << "-e and -l cannot be used simultaneously" << endl;
     return 1;
   }
+
+  fsqueeze::SelectionParameters param;
 	
-	double alphaThreshold = 1e-6;
 	if (programOptions.option('a'))
-		alphaThreshold = fsqueeze::parseString<double>(programOptions.optionValue('a'));
+		param.alphaThreshold =
+      fsqueeze::parseString<double>(programOptions.optionValue('a'));
 
-	double gradientThreshold = 1e-20;
 	if (programOptions.option('g'))
-		gradientThreshold = fsqueeze::parseString<double>(programOptions.optionValue('g'));
+		param.gainThreshold =
+      fsqueeze::parseString<double>(programOptions.optionValue('g'));
 
-  size_t fullOptimizationExpBase = 0;
   if (programOptions.option('e'))
-    fullOptimizationExpBase =
+    param.fullOptimizationExpBase =
       fsqueeze::parseString<size_t>(programOptions.optionValue('e'));
 	
-	size_t fullOptimizationCycles = 0;
 	if (programOptions.option('l'))
-		fullOptimizationCycles = fsqueeze::parseString<size_t>(programOptions.optionValue('l'));
+		param.fullOptimizationCycles = fsqueeze::parseString<size_t>(programOptions.optionValue('l'));
 	
-	size_t nFeatures = numeric_limits<size_t>::max();
 	if (programOptions.option('n'))
-		nFeatures = fsqueeze::parseString<size_t>(programOptions.optionValue('n'));
+		param.nFeatures = fsqueeze::parseString<size_t>(programOptions.optionValue('n'));
 	
 	double minCorrelation = 0.9;
 	if (programOptions.option('r'))
@@ -126,13 +125,11 @@ int main(int argc, char *argv[])
 		ds.nFeatures() << endl;
 	
 	if (programOptions.option('c'))
-		fsqueeze::corrFeatureSelection(ds, logger, minCorrelation, nFeatures);
+		fsqueeze::corrFeatureSelection(ds, logger, minCorrelation, param.nFeatures);
 	else if (programOptions.option('f'))
-		fsqueeze::fastFeatureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
-			fullOptimizationCycles, fullOptimizationExpBase);
+		fsqueeze::fastFeatureSelection(ds, logger, param);
 	else
-		fsqueeze::featureSelection(ds, logger, alphaThreshold, gradientThreshold, nFeatures,
-			programOptions.option('o'), fullOptimizationCycles, fullOptimizationExpBase);
+		fsqueeze::featureSelection(ds, logger, param);
 	
 	return 0;
 }
