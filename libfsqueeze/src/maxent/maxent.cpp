@@ -287,7 +287,7 @@ Eigen::VectorXd fsqueeze::lbfgs_maxent(DataSet const &dataSet,
   int r = lbfgs(dataSet.nFeatures(), x, 0, lbfgs_maxent_evaluate, lbfgs_maxent_progress,
     const_cast<void *>(reinterpret_cast<void const *>(&evalData)), &param);
 
-  if (r != 0)
+  if (r != LBFGS_SUCCESS && r != LBFGS_STOP && r != LBFGS_ALREADY_MINIMIZED)
     throw runtime_error("Optimization finished unsuccessfully: " + r);
 
   Eigen::VectorXd weights(dataSet.nFeatures());
