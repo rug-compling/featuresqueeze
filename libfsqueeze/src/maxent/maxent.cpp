@@ -319,7 +319,6 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x,
 
   ContextVector const &ctxs = dataSet->contexts();
 
-  #pragma omp parallel for
   for (int i = 0; i < ctxs.size(); ++i)
   {
     lbfgsfloatval_t ctxLl = 0.0;
@@ -359,11 +358,9 @@ lbfgsfloatval_t lbfgs_maxent_evaluate(void *instance, lbfgsfloatval_t const *x,
       for (FeatureValues::InnerIterator fIter(featureVals, j);
           fIter; ++fIter)
         if (featureSet->find(fIter.index()) != featureSet->end())
-          #pragma omp atomic
           g[fIter.index()] += ctxs[i].prob() * pyx * fIter.value();
     }
 
-    #pragma omp atomic
     ll += ctxLl;
   }
 
