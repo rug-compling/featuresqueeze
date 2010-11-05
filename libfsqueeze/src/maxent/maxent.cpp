@@ -190,7 +190,7 @@ vector<FeatureSet> fsqueeze::contextActiveFeatures(DataSet const &dataSet,
 
 ExpectedValues fsqueeze::expFeatureValues(DsFeatureMap const &features, int nFeatures)
 {
-  ExpectedValues expVals(nFeatures);
+  ExpectedValues expVals = ExpectedValues::Zero(nFeatures);
   
   for (DsFeatureMap::const_iterator fIter = features.begin();
     fIter != features.end(); ++fIter)
@@ -210,7 +210,7 @@ ExpectedValues fsqueeze::expModelFeatureValues(
   DataSet const &dataSet,
   Sums const &sums, Zs const &zs)
 {
-  ExpectedValues expVals(dataSet.nFeatures());
+  ExpectedValues expVals = ExpectedValues::Zero(dataSet.nFeatures());
 
   ContextVector::const_iterator ctxIter = dataSet.contexts().begin();
   size_t i = 0;
